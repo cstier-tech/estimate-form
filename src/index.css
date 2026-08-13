@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-size: 14px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea {
+  padding: 6px 7px;
+  height: auto;
+  border: 1px solid #7f9db9;
+}
+
+select {
+  padding: 6px 35px 6px 7px;
+  height: auto;
+}
