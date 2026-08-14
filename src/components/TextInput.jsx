@@ -1,6 +1,6 @@
-function TextInput({ label, value, onChange, placeholder, name, required }) {
+function TextInput({ label, value, onChange, placeholder, name, required, disabled, readOnly, direction='col', wrapperId }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-${direction} gap-1`} id={wrapperId}>
       <label htmlFor={name}>{label}</label>
       <input
         type="text"
@@ -10,6 +10,8 @@ function TextInput({ label, value, onChange, placeholder, name, required }) {
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        readOnly={readOnly}
+        disabled={disabled}
       />
     </div>
   )

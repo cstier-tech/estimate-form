@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Button from './Button'
+
 
 function emptySection(fields) {
   return fields.reduce((section, field) => {
@@ -7,8 +9,17 @@ function emptySection(fields) {
   }, {})
 }
 
-function RepeatingSection({ fields = [], onChange }) {
-  const [sections, setSections] = useState([emptySection(fields)])
+function RepeatingSection({
+  fields = [],
+  count = 0,
+  onChange,
+  allowManualAdd = true,
+  unit = 'Item',
+  className,
+  labelSize = 'sm',
+  children
+}) {
+  const [sections, setSections] = useState([])
 
   function updateSections(next) {
     setSections(next)
@@ -30,9 +41,25 @@ function RepeatingSection({ fields = [], onChange }) {
     updateSections(sections.filter((_, i) => i !== index))
   }
 
+  useEffect(() => {
+    const total = Math.max(0, Number(count) || 0)
+
+    const next = Array.from(
+      { length: total },
+      (_, i) => sections[i] || emptySection(fields)
+    )
+
+    if (next.length !== sections.length) {
+      updateSections(next)
+    }
+  }, [count])
+
   function renderField(field, section, index) {
     const id = `${field.name}-${index}`
-    const value = section[field.name]
+    // const value = section[field.name]
+    const value = field.calculate
+      ? field.calculate(section)
+      : section[field.name];
 
     switch (field.type) {
       case 'number':
@@ -41,24 +68,35 @@ function RepeatingSection({ fields = [], onChange }) {
             type="number"
             id={id}
             value={value}
-            onChange={(e) => updateField(index, field.name, e.target.value)}
+            readOnly={field.isReadOnly}
+            disabled={field.isReadOnly}
+            onChange={(e) =>
+              updateField(index, field.name, e.target.value)
+            }
+
           />
         )
+
       case 'date':
         return (
           <input
             type="date"
             id={id}
             value={value}
-            onChange={(e) => updateField(index, field.name, e.target.value)}
+            onChange={(e) =>
+              updateField(index, field.name, e.target.value)
+            }
           />
         )
+
       case 'select':
         return (
           <select
             id={id}
             value={value}
-            onChange={(e) => updateField(index, field.name, e.target.value)}
+            onChange={(e) =>
+              updateField(index, field.name, e.target.value)
+            }
           >
             {(field.options || []).map((option) => (
               <option key={option.value} value={option.value}>
@@ -67,22 +105,28 @@ function RepeatingSection({ fields = [], onChange }) {
             ))}
           </select>
         )
+
       case 'checkbox':
         return (
           <input
             type="checkbox"
             id={id}
             checked={value}
-            onChange={(e) => updateField(index, field.name, e.target.checked)}
+            onChange={(e) =>
+              updateField(index, field.name, e.target.checked)
+            }
           />
         )
+
       default:
         return (
           <input
             type="text"
             id={id}
             value={value}
-            onChange={(e) => updateField(index, field.name, e.target.value)}
+            onChange={(e) =>
+              updateField(index, field.name, e.target.value)
+            }
           />
         )
     }
@@ -91,44 +135,57 @@ function RepeatingSection({ fields = [], onChange }) {
   return (
     <div className="flex flex-col gap-3">
       {sections.map((section, index) => (
-        <fieldset key={index}>
-          <legend>Item {index + 1}</legend>
+        <fieldset key={index} className={className}>
+          <legend className={`text-gray-800 text-${labelSize}`}>{unit} {index + 1}</legend>
+
           <div className="flex flex-wrap gap-3 p-2">
-            {fields.map((field) => (
-              <div
-                key={field.name}
-                className={
-                  field.type === 'checkbox'
-                    ? 'flex items-center gap-1'
-                    : 'flex flex-col gap-1'
-                }
-              >
-                {field.type === 'checkbox' ? (
-                  <>
-                    {renderField(field, section, index)}
-                    <label htmlFor={`${field.name}-${index}`}>{field.label}</label>
-                  </>
-                ) : (
-                  <>
-                    <label htmlFor={`${field.name}-${index}`}>{field.label}</label>
-                    {renderField(field, section, index)}
-                  </>
-                )}
-              </div>
-            ))}
+            {fields
+              .filter(
+                (field) =>
+                  !field.showWhen || field.showWhen(section)
+              )
+              .map((field) => (
+                <div
+                  key={field.name}
+                  className={
+                    field.type === 'checkbox'
+                      ? 'flex items-center gap-1'
+                      : 'flex flex-col gap-1'
+                  }
+                >
+                  {field.type === 'checkbox' ? (
+                    <>
+                      {renderField(field, section, index)}
+                      <label htmlFor={`${field.name}-${index}`}>
+                        {field.label}
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <label htmlFor={`${field.name}-${index}`}>
+                        {field.label}
+                      </label>
+                      {renderField(field, section, index)}
+                    </>
+                  )}
+                </div>
+              ))}
           </div>
-          <div className="flex justify-end p-2">
-            <button type="button" onClick={() => removeSection(index)}>
-              Remove
-            </button>
-          </div>
+          {allowManualAdd && (
+            <div className="flex justify-end p-2">
+
+              <Button label='Remove' variant='danger' onClick={() => removeSection(index)} />
+            </div>
+          )}
+          {typeof children === 'function' && children(section, index)}
         </fieldset>
       ))}
-      <div>
-        <button type="button" onClick={addSection}>
-          Add Item
-        </button>
-      </div>
+
+      {allowManualAdd && (
+        <div>
+          <Button label='Add Item' onClick={addSection} variant='info' />
+        </div>
+      )}
     </div>
   )
 }
