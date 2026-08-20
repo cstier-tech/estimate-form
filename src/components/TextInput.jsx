@@ -1,4 +1,4 @@
-function TextInput({ label, value, onChange, placeholder, name, required, disabled, readOnly, direction='col', wrapperId }) {
+function TextInput({ label, value, onChange, placeholder, name, required, disabled, readOnly, direction='col', wrapperId, formText }) {
   return (
     <div className={`flex flex-${direction} gap-1`} id={wrapperId}>
       <label htmlFor={name}>{label}</label>
@@ -13,6 +13,7 @@ function TextInput({ label, value, onChange, placeholder, name, required, disabl
         readOnly={readOnly}
         disabled={disabled}
       />
+      <small className="text-gray-500 text-xs">{formText}</small>
     </div>
   )
 }

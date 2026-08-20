@@ -12,6 +12,7 @@ function emptySection(fields) {
 function RepeatingSection({
   fields = [],
   count = 0,
+  value = [],
   onChange,
   allowManualAdd = true,
   unit = 'Item',
@@ -20,6 +21,11 @@ function RepeatingSection({
   children
 }) {
   const [sections, setSections] = useState([])
+  useEffect(() => {
+    if (value && value.length > 0) {
+      setSections(value)
+    }
+  }, [value])
 
   function updateSections(next) {
     setSections(next)
@@ -138,7 +144,7 @@ function RepeatingSection({
         <fieldset key={index} className={className}>
           <legend className={`text-gray-800 text-${labelSize}`}>{unit} {index + 1}</legend>
 
-          <div className="flex flex-wrap gap-3 p-2">
+          <div className="flex flex-col gap-3 p-2">
             {fields
               .filter(
                 (field) =>
@@ -177,7 +183,8 @@ function RepeatingSection({
               <Button label='Remove' variant='danger' onClick={() => removeSection(index)} />
             </div>
           )}
-          {typeof children === 'function' && children(section, index)}
+          {typeof children === 'function' &&
+            children(section, index, updateField)}
         </fieldset>
       ))}
 
