@@ -12,11 +12,13 @@ function App() {
   const [activePage, setActivePage] = useState('form')
   const [editingEstimateId, setEditingEstimateId] = useState(null)
   return (
-    <>
-      <ButtonBar>
-        <Button label='Form' onClick={(e) => setActivePage('form')} />
-        <Button label='View' onClick={(e) => setActivePage('view')} />
-      </ButtonBar>
+    <div className="min-h-screen bg-gray-50">
+      <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
+        <ButtonBar>
+          <Button label='Form' onClick={(e) => setActivePage('form')} />
+          <Button label='View' onClick={(e) => setActivePage('view')} />
+        </ButtonBar>
+      </div>
 
       {/* {activePage == 'form' &&
         <EstimateForm estimateId={editingEstimateId} />
@@ -31,7 +33,7 @@ function App() {
         />
       }
       <NewEstimateForm />
-    </>
+    </div>
   )
 }
 

@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import TextInput from '../components/TextInput'
-import NumberInput from '../components/NumberInput'
 import DateInput from '../components/DateInput'
-import Textarea from '../components/Textarea'
 import SelectInput from '../components/SelectInput'
-import CheckboxInput from '../components/CheckboxInput'
 import RadioGroup from '../components/RadioGroup'
 import FormSection from '../components/FormSection'
 import RepeatingSection from '../components/RepeatingSection'
@@ -16,38 +12,85 @@ import Modal from '../components/Modal'
 import Tabs from '../components/Tabs'
 import FileInput from '../components/FileInput'
 import Component from '../form_sections/Component'
-
+import ProjectOverview from '../form_sections/ProjectOverview'
+import Quantities from '../form_sections/Quantities'
+import PackagingRequirements from '../form_sections/PackagingRequirements'
+import ServiceType from '../form_sections/ServiceType'
+import CheckboxInput from '../components/CheckboxInput'
+import Version from '../form_sections/Versions'
 
 
 const QTY_REPEATING_FIELDS = [
     { name: 'qty', label: 'Quantity', type: 'number' }
 ]
 
-const PROJECT_TYPES = [
-    'Assembly',
-    'Fulfillment',
-    'Mailing',
-    'Inkjet',
-    'Kitting',
-    'Packaging',
-    'Distribution',
-    'Inventory Storage',
-]
-
 function NewEstimateForm({ }) {
 
     // Project Overview
     const [clientName, setClientName] = useState('Prefilled Client...')
+    const [customerNumber, setCustomerNumber] = useState('Prefilled Number...')
     const [projName, setProjName] = useState('')
+    const [materialCode, setMaterialCode] = useState('')
+    const [revisionVersion, setRevisionVersion] = useState('')
     const [projDesc, setProjDesc] = useState('')
+    const [dueDate, setDueDate] = useState('')
     const [salesRep, setSalesRep] = useState('Internal sales rep')
     const [prevJobNo, setPrevJobNo] = useState('')
     const [prevEstNo, setPrevEstNo] = useState('')
+    const [jobType, setJobType] = useState('')
+
+    const [pIPartNumber, setPIPartNumber] = useState('')
+    const [coating, setCoating] = useState('')
+    const [stock, setStock] = useState('')
+    const [pagesQty, setPagesQty] = useState('')
+    const [finalSize, setFinalSize] = useState('')
+    const [flatSize, setFlatSize] = useState('')
 
     //Project Types
-    const [projectTypes, setProjectTypes] = useState([])
+    const [serviceTypes, setServiceTypes] = useState([])
     const [isOtherType, setIsOtherType] = useState(false)
-    const [otherProjectTypes, setOtherProjectTypes] = useState('')
+    const [otherServiceTypes, setOtherServiceTypes] = useState('')
+
+    // Product Types
+    const [productType, setProductType] = useState('')
+
+    // Versions
+    const [numOfVersions, setNumOfVersions] = useState(0)
+    const [versions, setVersions] = useState([])
+    const [hasMultipleVersions, setHasMultipleVersions] = useState(false)
+    const addVersion = () => {
+        setVersions(prev => [
+            ...prev,
+            {
+                Version: '',
+                VersionQty: '',
+                VersionMailFilesQty: '',
+            }
+        ])
+    }
+
+    const updateVersion = (index, field, value) => {
+        setVersions(prev =>
+            prev.map((version, i) =>
+                i === index
+                    ? { ...version, [field]: value }
+                    : version
+            )
+        )
+    }
+
+    const removeVersion = (index) => {
+        setVersions(prev =>
+            prev.filter((_, i) => i !== index)
+        )
+    }
+
+    const handleHasVersions = (e) => {
+        if (!versions.length) {
+            addVersion();
+        }
+        setHasMultipleVersions(e.target.checked)
+    }
 
     //Quantities
     const [hasMultipleQtyLevels, setHasMultipleQtyLevels] = useState(false)
@@ -83,7 +126,10 @@ function NewEstimateForm({ }) {
                 ComponentSource: '',
                 ComponentSize: '',
                 RequireAssembly: false,
-                AssemblyTypes: []
+                AssemblyTypes: [],
+                PerformedBy: '',
+                DieStatus: '',
+                DieNumber: ''
             }
         ])
     }
@@ -106,39 +152,57 @@ function NewEstimateForm({ }) {
 
     // Packing Requirements
     const [isKit, setIsKit] = useState(false)
-    const [kitContents, setKitContents] = useState([])
+    // Empty until the user explicitly edits it; falls back to the
+    // Requested Production Quantity as its prefilled default.
+    const [numOfKitsOverride, setNumOfKitsOverride] = useState('')
+    const numOfKits =
+        numOfKitsOverride !== ''
+            ? Number(numOfKitsOverride)
+            : Number(prodQty) || 0
 
-    const buildKit = () => {
-        setKitContents(
-            components.map(component => {
-                const qtyPerKit =
-                    Math.floor(component.ComponentQty / prodQty)
+    // Keyed by component index. Only holds values the user has explicitly
+    // overridden; anything absent falls back to the computed default.
+    const [kitOverrides, setKitOverrides] = useState({})
 
-                return {
-                    ...component,
-                    qtyPerKit,
-                    overage:
-                        component.ComponentQty -
-                        qtyPerKit * prodQty,
-                    overageHandling: '',
-                    notes: ''
-                }
-            })
-        )
+    const updateKitQtyPerKit = (index, value) => {
+        setKitOverrides(prev => ({
+            ...prev,
+            [index]: { ...prev[index], qtyPerKit: value }
+        }))
     }
 
-    // const kits = components.map(component => ({
-    //     ...component,
-    //     qtyPerKit: Math.floor(component.ComponentQty / prodQty),
-    //     overage: Math.floor(component.ComponentQty - qtyPerKit * prodQty),
-    //     overageHandling: '',
-    //     notes: ''
-    // }))
+    const updateKitOverageHandling = (index, value) => {
+        setKitOverrides(prev => ({
+            ...prev,
+            [index]: { ...prev[index], overageHandling: value }
+        }))
+    }
 
+    const buildKit = () => {
+        const qty = numOfKits
 
+        return components.map((component, index) => {
+            const componentQty = Number(component.ComponentQty) || 0
+            const defaultQtyPerKit = qty > 0 ? Math.floor(componentQty / qty) : 0
+            const override = kitOverrides[index] || {}
+            const qtyPerKit =
+                override.qtyPerKit !== undefined && override.qtyPerKit !== ''
+                    ? Number(override.qtyPerKit)
+                    : defaultQtyPerKit
 
+            return {
+                ...component,
+                qtyPerKit,
+                overage: componentQty - qtyPerKit * qty,
+                overageHandling: override.overageHandling || ''
+            }
+        })
+    }
 
-
+    // Recomputed on every render from `components`/`numOfKits`/`kitOverrides`,
+    // so it always reflects the latest quantities without needing to be
+    // kept in sync.
+    const kitContents = isKit ? buildKit() : []
 
     const [requirePacking, setRequirePacking] = useState(false)
 
@@ -153,12 +217,12 @@ function NewEstimateForm({ }) {
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const finalProjectTypes = [
-            ...projectTypes.map(type => ({
+        const finalServiceTypes = [
+            ...serviceTypes.map(type => ({
                 source: 'check',
                 value: type
             })),
-            ...otherProjectTypes
+            ...otherServiceTypes
                 .split(',')
                 .map(item => ({
                     source: 'custom',
@@ -171,87 +235,130 @@ function NewEstimateForm({ }) {
             client_name: clientName,
             project_name: projName,
             project_desc: projDesc,
+            material_code: materialCode,
+            revision_version: revisionVersion,
+            due_date: dueDate,
             sales_rep: salesRep,
             prev_job_no: prevJobNo,
             prev_estimate_no: prevEstNo,
-            project_types: finalProjectTypes,
+            project_types: finalServiceTypes,
+            product_type: productType,
             production_qty: prodQty,
             additional_qtys: addQtys,
             components: components,
-            kit: kitContents
+            num_of_kits: isKit ? numOfKits : undefined,
+            kit: kitContents,
+            versions: versions,
+            flat_size: flatSize,
+            final_size: finalSize,
+            pages_qty: pagesQty,
+            stock: stock,
+            coating: coating,
+            pi_part_num: pIPartNumber
         };
 
         console.log(estimateData);
     }
 
-    const handleProjectTypes = (e) => {
+    const handleServiceTypes = (e) => {
         const { value, checked } = e.target;
 
-        setProjectTypes((prev) =>
+        setServiceTypes((prev) =>
             checked
                 ? [...prev, e.target.name]
                 : prev.filter((item) => item !== e.target.name)
         );
     }
 
-    const addOtherProjectTypes = (e) => {
+    const addOtherServiceTypes = (e) => {
         const value = e.target.value;
-        setOtherProjectTypes(value)
+        setOtherServiceTypes(value)
     }
 
 
     return (
-        <>
-            <div className="bg-lime-950/10 p-20">
-                <h3 className='m-0'>Request an Estimate</h3>
-                <p className='mb-5'>Fill out the form below and we'll get back to you within 24-48 hours</p>
-                <hr />
+        <div className="px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-3xl">
+                <h3 className='text-2xl font-semibold text-gray-900'>Request an Estimate</h3>
+                <p className='mt-1 mb-6 text-sm text-gray-600'>Fill out the form below and we'll get back to you within 24-48 hours</p>
 
-                <form onSubmit={handleSubmit}>
-                    <FormSection legend="Project Overview">
-                        <TextInput label='Client Name' name='ClientName' value={clientName} onChange={(e) => setClientName(e.target.value)} readOnly disabled />
-                        <TextInput label='Project Name (optional)' name='ProjName' value={projName} onChange={(e) => setProjName(e.target.value)} />
-                        <Textarea label='Project Description' name='ProjDesc' placeholder='Briefly describe the finished piece and work to be performed.' value={projDesc} onChange={(e) => setProjDesc(e.target.value)} required rows={4} />
-                        <TextInput label='Sales Rep' name='SalesRep' value={salesRep} onChange={(e) => setSalesRep(e.target.value)} readOnly disabled />
-                        <TextInput label='Previous Job # (if applicable)' name='PrevJobNo' value={prevJobNo} onChange={(e) => setPrevJobNo(e.target.value)} />
-                        <TextInput label='Previous Estimate # (if applicable)' name='PrevEstNo' value={prevEstNo} onChange={(e) => setPrevEstNo(e.target.value)} />
-                        <h5 className='m-0'>Project Types (select all that apply)</h5>
-                        {/* <small className='text-gray-500'>Select all that apply</small> */}
-                        {PROJECT_TYPES.map((label) => (
-                            <CheckboxInput
-                                key={label}
-                                label={label}
-                                name={label}
-                                checked={projectTypes.includes(label)}
-                                onChange={handleProjectTypes}
-                            />
-                        ))}
-                        <CheckboxInput label='Other Project Types' checked={isOtherType} name='Other' onChange={(e) => setIsOtherType(e.target.checked)} />
-                        {isOtherType &&
-                            <TextInput label='Specify other project types (comma separate multiple types if more than 1)' value={otherProjectTypes} onChange={(e) => setOtherProjectTypes(e.target.value)} />
-                        }
-                    </FormSection>
-
-                    <FormSection legend="Quantities">
-                        <NumberInput label='Requested Production Quantity' name='qty' value={prodQty} onChange={(e) => setProdQty(e.target.value)} />
-                        {addQtys.map((addQty, index) => (
-                            <div className='flex'>
-                                <NumberInput
-                                    label='Additional quantity to price'
-                                    key={index}
-                                    index={index}
-                                    value={addQty}
-                                    onChange={(e) => updateQty(index, e.target.value)}
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                    <FormSection legend='Project Overview'>
+                        <ProjectOverview
+                            clientName={clientName}
+                            setClientName={setClientName}
+                            customerNumber={customerNumber}
+                            setCustomerNumber={setCustomerNumber}
+                            projName={projName}
+                            setProjName={setProjName}
+                            projDesc={projDesc}
+                            setProjDesc={setProjDesc}
+                            materialCode={materialCode}
+                            setMaterialCode={setMaterialCode}
+                            revisionVersion={revisionVersion}
+                            jobType={jobType}
+                            setJobType={setJobType}
+                            setRevisionVersion={setRevisionVersion}
+                            dueDate={dueDate}
+                            setDueDate={setDueDate}
+                            salesRep={salesRep}
+                            setSalesRep={setSalesRep}
+                            prevJobNo={prevJobNo}
+                            setPrevJobNo={setPrevJobNo}
+                            prevEstNo={prevEstNo}
+                            setPrevEstNo={setPrevEstNo}
+                            flatSize={flatSize}
+                            setFlatSize={setFlatSize}
+                            finalSize={finalSize}
+                            setFinalSize={setFinalSize}
+                            pagesQty={pagesQty}
+                            setPagesQty={setPagesQty}
+                            stock={stock}
+                            setStock={setStock}
+                            coating={coating}
+                            setCoating={setCoating}
+                            pIPartNumber={pIPartNumber}
+                            setPIPartNumber={setPIPartNumber}
+                        />
+                        <CheckboxInput label='Multiple Versions?' name='HasMultipleVersions' checked={hasMultipleVersions} onChange={handleHasVersions} />
+                        {hasMultipleVersions &&
+                            <>
+                                {versions.map((version, index) => (
+                                    <Version
+                                        key={index}
+                                        version={version}
+                                        index={index}
+                                        updateVersion={updateVersion}
+                                        removeVersion={removeVersion}
+                                    />
+                                ))}
+                                <Button
+                                    label="Add another version"
+                                    onClick={addVersion}
                                 />
-                                <Button label='x' onClick={() => removeQty(index)} />
-                            </div>
-
-                        ))}
-                        <Button
-                            label="Add Additional Qty to price"
-                            onClick={addQtyToPrice}
+                            </>
+                        }
+                        <Quantities
+                            prodQty={prodQty}
+                            setProdQty={setProdQty}
+                            addQtys={addQtys}
+                            updateQty={updateQty}
+                            removeQty={removeQty}
+                            addQtyToPrice={addQtyToPrice}
                         />
                     </FormSection>
+
+
+                    <ServiceType
+                        serviceTypes={serviceTypes}
+                        handleServiceTypes={handleServiceTypes}
+                        isOtherType={isOtherType}
+                        setIsOtherType={setIsOtherType}
+                        otherServiceTypes={otherServiceTypes}
+                        setOtherServiceTypes={setOtherServiceTypes}
+                    />
+
+
                     <FormSection legend='Components'>
                         {components.map((component, index) => (
                             <Component
@@ -260,6 +367,7 @@ function NewEstimateForm({ }) {
                                 index={index}
                                 updateComponent={updateComponent}
                                 removeComponent={removeComponent}
+                                productType={productType}
                             />
                         ))}
                         <Button
@@ -267,22 +375,22 @@ function NewEstimateForm({ }) {
                             onClick={addComponent}
                         />
                     </FormSection>
-                    <FormSection legend='Packaging Requirements'>
-                        <CheckboxInput label='Is this a kit?' name='IsKit' onChange={buildKit} />
-                        {/* if is kit, build out kits with prefilled contents (from components). total kits = Requested Production Quantity. each kit contains (total qty of component / requested production qty) which can be edited (only larger number, lower is invalid). If there is a difference between total qty of component and kit contents, ask why/what should be done with the extras */}
+                    <PackagingRequirements
+                        isKit={isKit}
+                        setIsKit={setIsKit}
+                        numOfKits={numOfKitsOverride !== '' ? numOfKitsOverride : (prodQty ?? '')}
+                        setNumOfKits={setNumOfKitsOverride}
+                        kitContents={kitContents}
+                        updateKitQtyPerKit={updateKitQtyPerKit}
+                        updateKitOverageHandling={updateKitOverageHandling}
+                    />
 
-                        {isKit &&
-                            <div>
-                                <h5>Kit Contents</h5>
-
-                            </div>
-                        }
-                    </FormSection>
-
-                    <Button label='Submit' type='submit' />
+                    <div className="flex justify-end">
+                        <Button label='Submit' type='submit' />
+                    </div>
                 </form>
             </div>
-        </>
+        </div>
     )
 }
 

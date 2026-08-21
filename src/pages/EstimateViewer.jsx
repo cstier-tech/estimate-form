@@ -51,58 +51,59 @@ function EstimateViewer({ onEdit }) {
     }, [selectedId])
 
     return (
-        <div className="bg-lime-950/10 p-20">
-            <FormSection legend='Select Estimate'>
-                <SelectInput
-                    label="Estimate"
-                    value={selectedId}
-                    onChange={(e) => setSelectedId(e.target.value)}
-                    options={estimates.map(est => ({
-                        label: `Estimate #${est.id}`,
-                        value: est.id
-                    }))}
-                />
-            </FormSection>
+        <div className="px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto flex max-w-3xl flex-col gap-6">
+                <FormSection legend='Select Estimate'>
+                    <SelectInput
+                        label="Estimate"
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        options={estimates.map(est => ({
+                            label: `Estimate #${est.id}`,
+                            value: est.id
+                        }))}
+                    />
+                </FormSection>
 
+                <FormSection legend="Project Details">
+                    <p className="text-sm text-gray-700">{estimate?.project_description}</p>
+                    <p className="text-sm text-gray-700">{estimate?.project_type}</p>
+                </FormSection>
 
-            <FormSection legend="Project Details">
-                <p>{estimate?.project_description}</p>
-                <p>{estimate?.project_type}</p>
-            </FormSection>
+                <FormSection legend='Components'>
+                    {estimate?.Components?.map(component => (
+                        <fieldset key={component.id} className="rounded-md border border-gray-200 p-3">
+                            <legend className="px-1 text-sm font-semibold text-gray-800">{component.component_name}</legend>
 
-            <FormSection legend='Components'>
-                {estimate?.Components?.map(component => (
-                    <fieldset key={component.id}>
-                        <legend>{component.component_name}</legend>
+                            <p className="text-sm text-gray-700">Type: {component.component_type}</p>
+                            <p className="text-sm text-gray-700">Source: {component.component_source}</p>
 
-                        <p>Type: {component.component_type}</p>
-                        <p>Source: {component.component_source}</p>
+                            <p className="text-sm text-gray-700">Job Number: {component.job_number}</p>
+                            <p className="text-sm text-gray-700">Department: {component.department}</p>
+                        </fieldset>
+                    ))}
+                </FormSection>
 
-                        <p>Job Number: {component.job_number}</p>
-                        <p>Department: {component.department}</p>
-                    </fieldset>
-                ))}
-            </FormSection>
+                <FormSection legend='Shrinkwrap Packs'>
+                    {estimate?.["Shrinkwrap Packs"]?.map(pack => (
+                        <fieldset key={pack.id} className="rounded-md border border-gray-200 p-3">
+                            <p className="text-sm text-gray-700">Qty Per Pack: {pack.qty_per_pack}</p>
+                            <p className="text-sm text-gray-700">Number of Packs: {pack.num_of_packs}</p>
+                            <p className="text-sm text-gray-700">Total: {pack.pack_total}</p>
+                        </fieldset>
+                    ))}
+                </FormSection>
 
-            <FormSection legend='Shrinkwrap Packs'>
-                {estimate?.["Shrinkwrap Packs"]?.map(pack => (
-                    <fieldset key={pack.id}>
-                        <p>Qty Per Pack: {pack.qty_per_pack}</p>
-                        <p>Number of Packs: {pack.num_of_packs}</p>
-                        <p>Total: {pack.pack_total}</p>
-                    </fieldset>
-                ))}
-            </FormSection>
-
-            {estimate && (
-  <Button
-    label="Edit Estimate"
-    onClick={() => onEdit(estimate.id)}
-  />
-)}
-
+                {estimate && (
+                    <div className="flex justify-end">
+                        <Button
+                            label="Edit Estimate"
+                            onClick={() => onEdit(estimate.id)}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
-        
     )
 }
 

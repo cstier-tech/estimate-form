@@ -16,7 +16,7 @@ import Modal from '../components/Modal'
 import Tabs from '../components/Tabs'
 import FileInput from '../components/FileInput'
 
-const PROJECT_TYPE = [
+const SERVICE_TYPE = [
     { label: 'Select One...', value: '' },
     { label: 'Shrinkwrap Only', value: 'shrinkwrap-only' },
     { label: 'Kit Assembly', value: 'kit-assembly' },
@@ -161,8 +161,8 @@ const SHRINKWRAP_PK_INFO_REPEATING_FIELDS = [
 function EstimateForm({ estimateId = null }) {
 
     //project details
-    const [projectDescription, setProjectDescription] = useState(PROJECT_TYPE[0].value)
-    const [projectType, setProjectType] = useState(PROJECT_TYPE[0].value)
+    const [projectDescription, setProjectDescription] = useState(SERVICE_TYPE[0].value)
+    const [serviceType, setServiceType] = useState(SERVICE_TYPE[0].value)
     const [numOfComponents, setNumOfComponents] = useState('')
     const [components, setComponents] = useState([])
 
@@ -224,7 +224,7 @@ function EstimateForm({ estimateId = null }) {
 
     const estimateData = {
         project_description: projectDescription,
-        project_type: projectType,
+        project_type: serviceType,
         components: components,
         timeline: timeline,
         carton_type: cartonType,
@@ -250,7 +250,7 @@ function EstimateForm({ estimateId = null }) {
                 .update([
                     {
                         project_description: projectDescription,
-                        project_type: projectType,
+                        project_type: serviceType,
                         timeline: timeline,
                         carton_type: cartonType,
                         other_carton_type: customCartonSource,
@@ -333,7 +333,7 @@ function EstimateForm({ estimateId = null }) {
 
             alert('Saved!')
             setProjectDescription('')
-            setProjectType('')
+            setServiceType('')
             setASNRequired(false)
             setAddlNotes('')
             setApprovalNeeded(false)
@@ -356,7 +356,7 @@ function EstimateForm({ estimateId = null }) {
                 .insert([
                     {
                         project_description: projectDescription,
-                        project_type: projectType,
+                        project_type: serviceType,
                         timeline: timeline,
                         carton_type: cartonType,
                         other_carton_type: customCartonSource,
@@ -419,7 +419,7 @@ function EstimateForm({ estimateId = null }) {
 
             alert('Saved!')
             setProjectDescription('')
-            setProjectType('')
+            setServiceType('')
             setASNRequired(false)
             setAddlNotes('')
             setApprovalNeeded(false)
@@ -461,7 +461,7 @@ function EstimateForm({ estimateId = null }) {
             }
 
             setProjectDescription(data.project_description)
-            setProjectType(data.project_type)
+            setServiceType(data.project_type)
             setTimeline(data.timeline)
             setCartonType(data.carton_type)
             setCustomCartonSource(data.other_carton_type)
@@ -528,12 +528,12 @@ function EstimateForm({ estimateId = null }) {
                     />
                     <SelectInput
                         label="Project Type"
-                        name="ProjectType"
-                        value={projectType}
-                        onChange={(e) => setProjectType(e.target.value)}
-                        options={PROJECT_TYPE}
+                        name="ServiceType"
+                        value={serviceType}
+                        onChange={(e) => setServiceType(e.target.value)}
+                        options={SERVICE_TYPE}
                     />
-                    {projectType != '' &&
+                    {serviceType != '' &&
                         <NumberInput
                             label="Number of Components"
                             name="components"
@@ -652,7 +652,7 @@ function EstimateForm({ estimateId = null }) {
 
 
                     </RepeatingSection>
-                    {projectType === 'shrinkwrap-only' &&
+                    {serviceType === 'shrinkwrap-only' &&
                         <fieldset className='bg-amber-50'>
                             <legend className="text-gray-800 text-sm">Shrinkwrap Pack Information</legend>
 

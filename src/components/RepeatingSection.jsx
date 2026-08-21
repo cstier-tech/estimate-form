@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import Button from './Button'
+import { LABEL_CLASS, INPUT_CLASS, CHECKBOX_CLASS } from './fieldStyles'
 
+const LABEL_SIZE_CLASSES = { xs: 'text-xs', sm: 'text-sm', base: 'text-base', lg: 'text-lg' }
 
 function emptySection(fields) {
   return fields.reduce((section, field) => {
@@ -79,6 +81,7 @@ function RepeatingSection({
             onChange={(e) =>
               updateField(index, field.name, e.target.value)
             }
+            className={INPUT_CLASS}
 
           />
         )
@@ -92,6 +95,7 @@ function RepeatingSection({
             onChange={(e) =>
               updateField(index, field.name, e.target.value)
             }
+            className={INPUT_CLASS}
           />
         )
 
@@ -103,6 +107,7 @@ function RepeatingSection({
             onChange={(e) =>
               updateField(index, field.name, e.target.value)
             }
+            className={INPUT_CLASS}
           >
             {(field.options || []).map((option) => (
               <option key={option.value} value={option.value}>
@@ -121,6 +126,7 @@ function RepeatingSection({
             onChange={(e) =>
               updateField(index, field.name, e.target.checked)
             }
+            className={CHECKBOX_CLASS}
           />
         )
 
@@ -133,6 +139,7 @@ function RepeatingSection({
             onChange={(e) =>
               updateField(index, field.name, e.target.value)
             }
+            className={INPUT_CLASS}
           />
         )
     }
@@ -141,8 +148,8 @@ function RepeatingSection({
   return (
     <div className="flex flex-col gap-3">
       {sections.map((section, index) => (
-        <fieldset key={index} className={className}>
-          <legend className={`text-gray-800 text-${labelSize}`}>{unit} {index + 1}</legend>
+        <fieldset key={index} className={`rounded-lg border border-gray-200 p-4 ${className || ''}`}>
+          <legend className={`px-1 font-semibold text-gray-800 ${LABEL_SIZE_CLASSES[labelSize] || 'text-sm'}`}>{unit} {index + 1}</legend>
 
           <div className="flex flex-col gap-3 p-2">
             {fields
@@ -162,13 +169,13 @@ function RepeatingSection({
                   {field.type === 'checkbox' ? (
                     <>
                       {renderField(field, section, index)}
-                      <label htmlFor={`${field.name}-${index}`}>
+                      <label htmlFor={`${field.name}-${index}`} className="text-sm text-gray-700">
                         {field.label}
                       </label>
                     </>
                   ) : (
                     <>
-                      <label htmlFor={`${field.name}-${index}`}>
+                      <label htmlFor={`${field.name}-${index}`} className={LABEL_CLASS}>
                         {field.label}
                       </label>
                       {renderField(field, section, index)}

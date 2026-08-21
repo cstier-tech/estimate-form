@@ -5,6 +5,8 @@ import SelectInput from "../components/SelectInput";
 import TextInput from "../components/TextInput";
 import Button from "../components/Button";
 import CheckboxInput from "../components/CheckboxInput";
+import RadioGroup from "../components/RadioGroup";
+import Textarea from "../components/Textarea";
 
 const COMPONENT_SOURCE = [
     { label: 'Select Source', value: '' },
@@ -12,6 +14,17 @@ const COMPONENT_SOURCE = [
     { label: 'Customer Supplied', value: 'customer-supplied' },
     { label: 'Veracore Inventory', value: 'veracore-inventory' },
 ]
+
+const FOLD_TYPE = [
+    { label: 'None', value: '' },
+    { label: 'Bifold', value: 'Bifold' },
+    { label: 'Trifold', value: 'Trifold' },
+    { label: 'Roll Fold', value: 'Roll Fold' },
+    { label: 'Score Only', value: 'Score Only' },
+    { label: 'Die Cut', value: 'Die Cut' },
+    { label: 'Other', value: 'Other' },
+]
+
 const ASSEMBLY_TYPES = [
     'Insert into pocket',
     'Folder forming',
@@ -25,11 +38,17 @@ const ASSEMBLY_TYPES = [
     'Multi-piece kit assembly',
 ]
 
+const PERFORMED_BY_OPTIONS = [
+    { label: 'LCP', value: 'LCP' },
+    { label: 'LCP Complete', value: 'LCPC' },
+]
+
 function Component({
     component,
     index,
     updateComponent,
-    removeComponent
+    removeComponent,
+    productType
 }) {
     const toggleAssemblyType = (assemblyType, checked) => {
         const current = component.AssemblyTypes || []
@@ -40,9 +59,21 @@ function Component({
 
         updateComponent(index, 'AssemblyTypes', next)
     }
+
+    const finishing = component.Finishing || {}
+
+    const updateFinishingGroup = (group, field, value) => {
+        updateComponent(index, 'Finishing', {
+            ...finishing,
+            [group]: {
+                ...finishing[group],
+                [field]: value
+            }
+        })
+    }
     return (
-        <fieldset className="bg-sky-50 p-4 rounded">
-            <legend>
+        <fieldset className="rounded-lg border border-sky-200 bg-sky-50 p-4 flex flex-col gap-3">
+            <legend className="px-1 text-sm font-semibold text-gray-800">
                 Component {index + 1}
             </legend>
 
@@ -58,6 +89,42 @@ function Component({
                 }
             />
 
+            <TextInput
+                label="Flat Size"
+                value={component.FlatSize}
+                placeholder='W x H'
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'FlatSize',
+                        e.target.value
+                    )
+                }
+            />
+
+            <TextInput
+                label="Final Size"
+                value={component.FinalSize}
+                placeholder='W x H'
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'FinalSize',
+                        e.target.value
+                    )
+                }
+            />
+            <NumberInput
+                label="Number of Pages / Panels"
+                value={component.PagesQty}
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'PagesQty',
+                        e.target.value
+                    )
+                }
+            />
             <NumberInput
                 label="Total Qty"
                 value={component.ComponentQty}
@@ -69,7 +136,30 @@ function Component({
                     )
                 }
             />
-
+            <TextInput
+                label="Stock"
+                value={component.Stock}
+                placeholder='e.g. Kallima 8pt C2S'
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'FinalSStockize',
+                        e.target.value
+                    )
+                }
+            />
+            <TextInput
+                label="Coating"
+                value={component.Coating}
+                placeholder='e.g. AQ Satin both sides, UV Side 1 only'
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'Coating',
+                        e.target.value
+                    )
+                }
+            />
             <SelectInput
                 label="Source"
                 value={component.ComponentSource}
@@ -82,8 +172,387 @@ function Component({
                     )
                 }
             />
+            <TextInput
+                label="PI Part Number"
+                value={component.PIPartNumber}
+                onChange={(e) =>
+                    updateComponent(
+                        index,
+                        'PIPartNumber',
+                        e.target.value
+                    )
+                }
+            />
+            <hr />
+            <h3>Finishing</h3>
+            <div>
+                <CheckboxInput
+                    label='Perf'
+                    name={`Perf-${index}`}
+                    checked={finishing.Perf?.Required || false}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'Perf',
+                            'Required',
+                            e.target.checked
+                        )
+                    }
+                />
+                {finishing.Perf?.Required && (
+                    <RadioGroup
+                        label='Performed by'
+                        name={`PerfPerformedBy-${index}`}
+                        options={PERFORMED_BY_OPTIONS}
+                        value={finishing.Perf?.PerformedBy}
+                        onChange={(e) =>
+                            updateFinishingGroup(
+                                'Perf',
+                                'PerformedBy',
+                                e.target.value
+                            )
+                        }
+                    />
+                )}
 
-            <CheckboxInput
+                <CheckboxInput
+                    label='Hole Drill'
+                    name={`HoleDrill-${index}`}
+                    checked={finishing.HoleDrill?.Required || false}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'HoleDrill',
+                            'Required',
+                            e.target.checked
+                        )
+                    }
+                />
+                {finishing.HoleDrill?.Required && (
+                    <>
+                        <RadioGroup
+                            label='Performed by'
+                            name={`HoleDrillPerformedBy-${index}`}
+                            options={PERFORMED_BY_OPTIONS}
+                            value={finishing.HoleDrill?.PerformedBy}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'HoleDrill',
+                                    'PerformedBy',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <NumberInput
+                            label='# of Holes'
+                            value={finishing.HoleDrill?.Count || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'HoleDrill',
+                                    'Count',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <TextInput
+                            label='Hole Size'
+                            value={finishing.HoleDrill?.Size || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'HoleDrill',
+                                    'Size',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <TextInput
+                            label='Distance from Top'
+                            value={finishing.HoleDrill?.DistanceFromTop || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'HoleDrill',
+                                    'DistanceFromTop',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <RadioGroup
+                            label='Placement'
+                            name={`HolePlacement-${index}`}
+                            options={[
+                                { label: 'Left', value: 'Left' },
+                                { label: 'Center', value: 'Center' },
+                                { label: 'Right', value: 'Right' },
+                            ]}
+                            value={finishing.HoleDrill?.Placement}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'HoleDrill',
+                                    'Placement',
+                                    e.target.value
+                                )
+                            }
+                        />
+                    </>
+                )}
+
+                <CheckboxInput
+                    label='Score'
+                    name={`Score-${index}`}
+                    checked={finishing.Score?.Required || false}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'Score',
+                            'Required',
+                            e.target.checked
+                        )
+                    }
+                />
+                {finishing.Score?.Required && (
+                    <RadioGroup
+                        label='Performed by'
+                        name={`ScorePerformedBy-${index}`}
+                        options={PERFORMED_BY_OPTIONS}
+                        value={finishing.Score?.PerformedBy}
+                        onChange={(e) =>
+                            updateFinishingGroup(
+                                'Score',
+                                'PerformedBy',
+                                e.target.value
+                            )
+                        }
+                    />
+                )}
+
+                <CheckboxInput
+                    label='Capacity'
+                    name={`Capacity-${index}`}
+                    checked={finishing.Capacity?.Required || false}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'Capacity',
+                            'Required',
+                            e.target.checked
+                        )
+                    }
+                />
+                {finishing.Capacity?.Required && (
+                    <>
+                        <RadioGroup
+                            label='Performed by'
+                            name={`CapacityPerformedBy-${index}`}
+                            options={PERFORMED_BY_OPTIONS}
+                            value={finishing.Capacity?.PerformedBy}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'Capacity',
+                                    'PerformedBy',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <TextInput
+                            label='Spine Capacity'
+                            value={finishing.Capacity?.SpineCapacity || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'Capacity',
+                                    'SpineCapacity',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <TextInput
+                            label='Pocket Height'
+                            value={finishing.Capacity?.PocketHeight || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'Capacity',
+                                    'PocketHeight',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <TextInput
+                            label='Flap Width'
+                            value={finishing.Capacity?.FlapWidth || ''}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'Capacity',
+                                    'FlapWidth',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        <CheckboxInput
+                            label='Slot on right side for tab?'
+                            name={`CapacitySlotOnRight-${index}`}
+                            checked={finishing.Capacity?.SlotOnRight || false}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'Capacity',
+                                    'SlotOnRight',
+                                    e.target.checked
+                                )
+                            }
+                        />
+                    </>
+                )}
+
+                <SelectInput
+                    label='Fold Type'
+                    name={`FoldType-${index}`}
+                    options={FOLD_TYPE}
+                    value={finishing.Fold?.Type}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'Fold',
+                            'Type',
+                            e.target.value
+                        )
+                    }
+                />
+                {finishing.Fold?.Type === 'Other' && (
+                    <TextInput
+                        label='Please specify fold type'
+                        value={finishing.Fold?.Other || ''}
+                        onChange={(e) =>
+                            updateFinishingGroup(
+                                'Fold',
+                                'Other',
+                                e.target.value
+                            )
+                        }
+                    />
+                )}
+                {/* Only show this is fold type != none or '' */}
+                {finishing.Fold?.Type !== '' &&
+                    <RadioGroup
+                        label='Performed by'
+                        name={`FoldTypePerformedBy`}
+                        options={PERFORMED_BY_OPTIONS}
+                        value={finishing.Fold?.PerformedBy}
+                        onChange={(e) =>
+                            updateFinishingGroup(
+                                'Fold',
+                                'PerformedBy',
+                                e.target.value
+                            )
+                        }
+                    />
+                }
+
+
+                {finishing.Fold?.Type === 'Die Cut' && (
+                    <>
+                        <RadioGroup
+                            label='Die Status'
+                            name={`DieStatus-${index}`}
+                            options={[
+                                { label: 'New', value: 'New' },
+                                { label: 'Existing', value: 'Existing' },
+                            ]}
+                            value={finishing.DieCut?.Status}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'DieCut',
+                                    'Status',
+                                    e.target.value
+                                )
+                            }
+                        />
+                        {finishing.DieCut?.Status === 'Existing' && (
+                            <TextInput
+                                label='Die Number'
+                                value={finishing.DieCut?.DieNumber || ''}
+                                onChange={(e) =>
+                                    updateFinishingGroup(
+                                        'DieCut',
+                                        'DieNumber',
+                                        e.target.value
+                                    )
+                                }
+                            />
+                        )}
+                    </>
+                )}
+
+                <RadioGroup
+                    label='Glue / Seal'
+                    name={`GlueSeal-${index}`}
+                    options={[
+                        { label: 'Tab Glue', value: 'Tab Glue' },
+                        { label: 'Glue Dots', value: 'Glue Dots' },
+                        { label: 'Fugitive Glue', value: 'Fugitive Glue' },
+                        { label: 'None', value: '' },
+                    ]}
+                    value={finishing.GlueSeal?.Option}
+                    onChange={(e) =>
+                        updateFinishingGroup(
+                            'GlueSeal',
+                            'Option',
+                            e.target.value
+                        )
+                    }
+                />
+                {finishing.GlueSeal?.Option && (
+                    <RadioGroup
+                        label='Performed by'
+                        name={`GlueSealPerformedBy-${index}`}
+                        options={PERFORMED_BY_OPTIONS}
+                        value={finishing.GlueSeal?.PerformedBy}
+                        onChange={(e) =>
+                            updateFinishingGroup(
+                                'GlueSeal',
+                                'PerformedBy',
+                                e.target.value
+                            )
+                        }
+                    />
+                )}
+
+                {productType === 'Self-Mailer' && (
+                    <>
+                        <CheckboxInput
+                            label='BRC Panel'
+                            name={`BRCPanel-${index}`}
+                            checked={finishing.BRCPanel?.Selected || false}
+                            onChange={(e) =>
+                                updateFinishingGroup(
+                                    'BRCPanel',
+                                    'Selected',
+                                    e.target.checked
+                                )
+                            }
+                        />
+                        {finishing.BRCPanel?.Selected && (
+                            <TextInput
+                                label='Perf Placement/Distance from the Bottom'
+                                value={finishing.BRCPanel?.PerfPlacement || ''}
+                                onChange={(e) =>
+                                    updateFinishingGroup(
+                                        'BRCPanel',
+                                        'PerfPlacement',
+                                        e.target.value
+                                    )
+                                }
+                            />
+                        )}
+                    </>
+                )}
+
+                <Textarea
+                    label='Component Notes'
+                    value={component.ComponentNotes || ''}
+                    onChange={(e) =>
+                        updateComponent(
+                            index,
+                            'ComponentNotes',
+                            e.target.value
+                        )
+                    }
+                    rows={3}
+                />
+            </div>
+            {/* <CheckboxInput
                 label="Requires Assembly?"
                 checked={component.RequireAssembly}
                 name={`RequireAssembly-${index}`}
@@ -94,11 +563,11 @@ function Component({
                         e.target.checked
                     )
                 }
-            />
+            /> */}
 
-            {component.RequireAssembly && (
+            {/* {component.RequireAssembly && (
                 <>
-                    <h5 >Assembly Types</h5>
+                    <h5 className="mt-1 mb-0 text-sm font-semibold text-gray-800">Assembly Types</h5>
 
                     {ASSEMBLY_TYPES.map((type, i) => (
                         <CheckboxInput
@@ -117,11 +586,11 @@ function Component({
                         />
                     ))}
                 </>
-            )}
+            )} */}
 
             {component.ComponentSource === 'lcp-prod' && (
-                <fieldset>
-                    <legend>LCP Production</legend>
+                <fieldset className="rounded-md border border-gray-200 bg-white p-3">
+                    <legend className="px-1 text-xs font-semibold text-gray-600">LCP Production</legend>
 
                     <TextInput
                         label="Job Number"
@@ -138,8 +607,8 @@ function Component({
             )}
 
             {component.ComponentSource === 'customer-supplied' && (
-                <fieldset>
-                    <legend>Customer Supplied</legend>
+                <fieldset className="rounded-md border border-gray-200 bg-white p-3">
+                    <legend className="px-1 text-xs font-semibold text-gray-600">Customer Supplied</legend>
 
                     <TextInput
                         label="Coming From"
