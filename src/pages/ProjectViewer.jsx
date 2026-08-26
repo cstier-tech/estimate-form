@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabaseClient"
+import NewestForm from "./NewestForm"
 
-function ProjectViewer({onEdit}) {
+
+function ProjectViewer({ onEdit }) {
     const [projects, setProjects] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [showForm, setShowForm] = useState(false)
+    const [editingProject, setEditingProject] = useState(null)
 
     useEffect(() => {
         fetchProjects()
@@ -209,9 +213,33 @@ function ProjectViewer({onEdit}) {
             </p>
         )
     }
-
+    if (showForm) {
+        return (
+            <div className='mx-auto max-w-3xl'>
+                <NewestForm
+                    project={editingProject}
+                    onCancel={() => {
+                        setShowForm(false)
+                        setEditingProject(null)
+                        fetchProjects()
+                    }}
+                />
+            </div>
+        )
+    }
     return (
+
         <div className="overflow-x-auto">
+            <button
+                type="button"
+                onClick={() => {
+                    setEditingProject(null)
+                    setShowForm(true)
+                }}
+                className="mb-4 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+            >
+                + New Project
+            </button>
             <table className="w-full border-collapse border border-gray-300">
                 <caption className="sr-only">
                     All Projects

@@ -12,7 +12,7 @@ import Components2 from "../form_sections/Components2"
 import Kitting from "../form_sections/Kitting"
 import Mailing from "../form_sections/Mailing"
 
-function NewestForm({ projectToEdit = null, onSaved }) {
+function NewestForm({ projectToEdit = null, onSaved, onCancel }) {
 
     // PROJECT OVERVIEW
     const [clientName, setClientName] = useState('Prefilled Client...')
@@ -658,177 +658,177 @@ function NewestForm({ projectToEdit = null, onSaved }) {
 
 
     async function replaceProjectChildren(projectId) {
-    // =====================================================
-    // GET EXISTING CHILD IDS
-    // =====================================================
+        // =====================================================
+        // GET EXISTING CHILD IDS
+        // =====================================================
 
-    const [
-        versionsResult,
-        componentsResult,
-        kitsResult
-    ] = await Promise.all([
-        supabase
-            .from("Versions")
-            .select("id")
-            .eq("project_id", projectId),
+        const [
+            versionsResult,
+            componentsResult,
+            kitsResult
+        ] = await Promise.all([
+            supabase
+                .from("Versions")
+                .select("id")
+                .eq("project_id", projectId),
 
-        supabase
-            .from("Components")
-            .select("id")
-            .eq("project_id", projectId),
+            supabase
+                .from("Components")
+                .select("id")
+                .eq("project_id", projectId),
 
-        supabase
-            .from("Kits")
-            .select("id")
+            supabase
+                .from("Kits")
+                .select("id")
+                .eq("project_id", projectId)
+        ])
+
+        if (versionsResult.error) {
+            throw versionsResult.error
+        }
+
+        if (componentsResult.error) {
+            throw componentsResult.error
+        }
+
+        if (kitsResult.error) {
+            throw kitsResult.error
+        }
+
+        const versionIds =
+            (versionsResult.data || []).map(row => row.id)
+
+        const componentIds =
+            (componentsResult.data || []).map(row => row.id)
+
+        const kitIds =
+            (kitsResult.data || []).map(row => row.id)
+
+        // =====================================================
+        // PROJECT QUANTITIES
+        // =====================================================
+
+        let result = await supabase
+            .from("Project Quantities")
+            .delete()
             .eq("project_id", projectId)
-    ])
 
-    if (versionsResult.error) {
-        throw versionsResult.error
-    }
+        if (result.error) {
+            throw result.error
+        }
 
-    if (componentsResult.error) {
-        throw componentsResult.error
-    }
+        // =====================================================
+        // KIT QUANTITIES
+        // =====================================================
 
-    if (kitsResult.error) {
-        throw kitsResult.error
-    }
+        if (kitIds.length > 0) {
+            result = await supabase
+                .from("Kit Quantities")
+                .delete()
+                .in("kit_id", kitIds)
 
-    const versionIds =
-        (versionsResult.data || []).map(row => row.id)
+            if (result.error) {
+                throw result.error
+            }
+        }
 
-    const componentIds =
-        (componentsResult.data || []).map(row => row.id)
+        // =====================================================
+        // KITS
+        // =====================================================
 
-    const kitIds =
-        (kitsResult.data || []).map(row => row.id)
-
-    // =====================================================
-    // PROJECT QUANTITIES
-    // =====================================================
-
-    let result = await supabase
-        .from("Project Quantities")
-        .delete()
-        .eq("project_id", projectId)
-
-    if (result.error) {
-        throw result.error
-    }
-
-    // =====================================================
-    // KIT QUANTITIES
-    // =====================================================
-
-    if (kitIds.length > 0) {
         result = await supabase
-            .from("Kit Quantities")
+            .from("Kits")
             .delete()
-            .in("kit_id", kitIds)
+            .eq("project_id", projectId)
+
+        if (result.error) {
+            throw result.error
+        }
+
+        // =====================================================
+        // VERSION QUANTITIES
+        // =====================================================
+
+        if (versionIds.length > 0) {
+            result = await supabase
+                .from("Version Quantities")
+                .delete()
+                .in("version_id", versionIds)
+
+            if (result.error) {
+                throw result.error
+            }
+        }
+
+        // =====================================================
+        // VERSIONS
+        // =====================================================
+
+        result = await supabase
+            .from("Versions")
+            .delete()
+            .eq("project_id", projectId)
+
+        if (result.error) {
+            throw result.error
+        }
+
+        // =====================================================
+        // COMPONENT QUANTITIES
+        // =====================================================
+
+        if (componentIds.length > 0) {
+            result = await supabase
+                .from("Component Quantities")
+                .delete()
+                .in("component_id", componentIds)
+
+            if (result.error) {
+                throw result.error
+            }
+        }
+
+        // =====================================================
+        // COMPONENT FINISHING
+        // =====================================================
+
+        if (componentIds.length > 0) {
+            result = await supabase
+                .from("Component Finishing")
+                .delete()
+                .in("component_id", componentIds)
+
+            if (result.error) {
+                throw result.error
+            }
+        }
+
+        // =====================================================
+        // COMPONENTS
+        // =====================================================
+
+        result = await supabase
+            .from("Components")
+            .delete()
+            .eq("project_id", projectId)
+
+        if (result.error) {
+            throw result.error
+        }
+
+        // =====================================================
+        // MAILING
+        // =====================================================
+
+        result = await supabase
+            .from("Mailing")
+            .delete()
+            .eq("project_id", projectId)
 
         if (result.error) {
             throw result.error
         }
     }
-
-    // =====================================================
-    // KITS
-    // =====================================================
-
-    result = await supabase
-        .from("Kits")
-        .delete()
-        .eq("project_id", projectId)
-
-    if (result.error) {
-        throw result.error
-    }
-
-    // =====================================================
-    // VERSION QUANTITIES
-    // =====================================================
-
-    if (versionIds.length > 0) {
-        result = await supabase
-            .from("Version Quantities")
-            .delete()
-            .in("version_id", versionIds)
-
-        if (result.error) {
-            throw result.error
-        }
-    }
-
-    // =====================================================
-    // VERSIONS
-    // =====================================================
-
-    result = await supabase
-        .from("Versions")
-        .delete()
-        .eq("project_id", projectId)
-
-    if (result.error) {
-        throw result.error
-    }
-
-    // =====================================================
-    // COMPONENT QUANTITIES
-    // =====================================================
-
-    if (componentIds.length > 0) {
-        result = await supabase
-            .from("Component Quantities")
-            .delete()
-            .in("component_id", componentIds)
-
-        if (result.error) {
-            throw result.error
-        }
-    }
-
-    // =====================================================
-    // COMPONENT FINISHING
-    // =====================================================
-
-    if (componentIds.length > 0) {
-        result = await supabase
-            .from("Component Finishing")
-            .delete()
-            .in("component_id", componentIds)
-
-        if (result.error) {
-            throw result.error
-        }
-    }
-
-    // =====================================================
-    // COMPONENTS
-    // =====================================================
-
-    result = await supabase
-        .from("Components")
-        .delete()
-        .eq("project_id", projectId)
-
-    if (result.error) {
-        throw result.error
-    }
-
-    // =====================================================
-    // MAILING
-    // =====================================================
-
-    result = await supabase
-        .from("Mailing")
-        .delete()
-        .eq("project_id", projectId)
-
-    if (result.error) {
-        throw result.error
-    }
-}
 
 
     // SUBMIT FORM HANDLER
@@ -1448,8 +1448,21 @@ function NewestForm({ projectToEdit = null, onSaved }) {
             }
 
 
-            <div className="flex mt-3">
-                <Button label='Submit' onClick={handleSubmit} size="lgFull" variant="info" />
+            <div className="flex mt-3 gap-3">
+                {onCancel && (
+                    <Button
+                        label="Cancel"
+                        onClick={onCancel}
+                        size="lgFull"
+                    />
+                )}
+
+                <Button
+                    label="Submit"
+                    onClick={handleSubmit}
+                    size="lgFull"
+                    variant="info"
+                />
             </div>
 
         </div>
