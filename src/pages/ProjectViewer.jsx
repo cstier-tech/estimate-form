@@ -240,7 +240,7 @@ function ProjectViewer({ onEdit }) {
             >
                 + New Project
             </button>
-            <table className="w-full border-collapse border border-gray-300">
+            <table className="w-full border-collapse border border-gray-300 bg-white rounded-md">
                 <caption className="sr-only">
                     All Projects
                 </caption>

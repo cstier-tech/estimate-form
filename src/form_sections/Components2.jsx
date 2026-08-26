@@ -53,7 +53,7 @@ function Components2({
 
             <CheckboxInput
                 label="Quantity is the same as Total Finished Qty(s)"
-                name="SameQty"
+                name={`SameQty${index}`}
                 checked={component.SameQty}
                 onChange={(e) => handleSameQty(index, e.target.checked)}
             />

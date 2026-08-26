@@ -7,7 +7,7 @@ function ProjectsPage() {
     const [editingProject, setEditingProject] = useState(null)
 
     return (
-        <div className='px-4 py-10 sm:px-6 lg:px-8'>
+        <div className='px-4 py-10 sm:px-6 lg:px-8 bg-gray-50 min-h-screen h-full'>
             {editingProject ? (
                 <div  className='mx-auto max-w-3xl'>
                     <button
