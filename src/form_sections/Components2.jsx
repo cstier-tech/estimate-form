@@ -4,6 +4,14 @@ import FormSection from "../components/FormSection"
 import Button from "../components/Button"
 import FinishingOp from "./Finishing"
 import CheckboxInput from "../components/CheckboxInput"
+import SelectInput from "../components/SelectInput"
+
+const COMPONENT_SOURCE = [
+    { label: 'Select Source', value: '' },
+    { label: 'LCP Production', value: 'lcp-prod' },
+    { label: 'Customer Supplied', value: 'customer-supplied' },
+    { label: 'Veracore Inventory', value: 'veracore-inventory' },
+]
 
 function Components2({
     component,
@@ -26,11 +34,12 @@ function Components2({
                 label='Component Name'
                 value={component.Component}
                 onChange={(e) => updateComponent(index, 'Component', e.target.value)} />
+            <SelectInput options={COMPONENT_SOURCE} />
             <TextInput
                 label='Size'
                 value={component.Size}
                 onChange={(e) => updateComponent(index, 'Size', e.target.value)} />
-                <TextInput
+            <TextInput
                 label='Flat Size'
                 value={component.FlatSize}
                 onChange={(e) => updateComponent(index, 'FlatSize', e.target.value)} />
