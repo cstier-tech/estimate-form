@@ -18,7 +18,7 @@ For example, if it belongs to **Project Overview**:
 const [priority, setPriority] = useState("")
 ```
 
-So your state might look like:
+So the state might look like:
 
 ```js
 const [projName, setProjName] = useState("")
@@ -40,7 +40,7 @@ const [fieldName, setFieldName] = useState("")
 
 # 2. Load the field when editing an existing project
 
-Inside your:
+Inside the:
 
 ```js
 useEffect(() => {
@@ -166,7 +166,7 @@ Put it in the appropriate section, such as:
 // =====================================================
 ```
 
-This allows your version history to say something like:
+This allows the version history to say something like:
 
 ```text
 Changed priority from "Normal" to "Rush"
@@ -228,7 +228,7 @@ For example:
 
 # 7. Make sure the database column exists
 
-Your Supabase table also needs:
+The Supabase table also needs:
 
 ```text
 Project Versions
@@ -249,7 +249,7 @@ ADD COLUMN priority text;
 
 # 8. Decide whether it belongs to a version
 
-This is important for your particular application.
+This is important for the particular application.
 
 Since you're creating a **new Project Version instead of overwriting the existing version**, ask:
 
@@ -287,7 +287,7 @@ Not every field is a simple:
 const [field, setField] = useState("")
 ```
 
-For example, your components are an array:
+For example, the components are an array:
 
 ```js
 const [components, setComponents] = useState([...])
@@ -326,7 +326,7 @@ Then you need to make sure it is:
 
 ---
 
-# Your Complete Checklist
+# The Complete Checklist
 
 Whenever you add a new field, run through this list:
 
@@ -392,7 +392,7 @@ For something like Kitting or Mailing:
 
 ---
 
-## One especially important thing for your version system
+## One especially important thing for the version system
 
 Because you're **creating a new version rather than overwriting the old one**, you should think of `getWhatChanged()` as a **comparison between two snapshots**:
 
@@ -426,4 +426,470 @@ if (oldPriority !== priority) {
 
 Those are separate and both need to be added.
 
-Also, I noticed your pasted file currently contains **two identical `getWhatChanged()` functions**. You should delete one of them—having both in the same component will cause a duplicate declaration error.
+TLDR:
+1. Add state in `NewestForm`
+2. Add it to the child component props
+3. Render the field in the child component
+4. Load it from projectToEdit in the useEffect
+5. Add it to `getWhatChanged()`
+6. Add it to the Supabase `.insert()`
+7. Add the database column if it doesn't already exist
+
+
+
+
+**Adding a field to `Components` is a little different** because the component data is stored as an array of objects rather than as individual pieces of state.
+
+With the current structure, you should **not create separate state** like:
+
+```js
+const [componentStock, setComponentStock] = useState("")
+```
+
+Instead, add the new field to each component object.
+
+Let's say you're adding:
+
+```js
+Color
+```
+
+## 1. Add it to the initial component
+
+Find:
+
+```js
+const [components, setComponents] = useState([
+    {
+        id: crypto.randomUUID(),
+        componentKey: crypto.randomUUID(),
+        Component: "",
+        Size: "",
+        FlatSize: "",
+        Stock: "",
+        Coating: "",
+        quantities: [""],
+        saved: false,
+        finishingOps: [],
+        SameQty: false
+    }
+])
+```
+
+Add:
+
+```js
+Color: "",
+```
+
+So:
+
+```js
+const [components, setComponents] = useState([
+    {
+        id: crypto.randomUUID(),
+        componentKey: crypto.randomUUID(),
+
+        Component: "",
+        Size: "",
+        FlatSize: "",
+        Stock: "",
+        Coating: "",
+        Color: "",
+
+        quantities: [""],
+        saved: false,
+        finishingOps: [],
+        SameQty: false
+    }
+])
+```
+
+---
+
+## 2. Add it to `addComponent()`
+
+You have a second place where a new component is created:
+
+```js
+const addComponent = () => {
+
+    setComponents(prev => [
+        ...prev,
+        {
+            id: crypto.randomUUID(),
+            componentKey: crypto.randomUUID(),
+            Component: "",
+            Size: "",
+            FlatSize: "",
+            Stock: "",
+            Coating: "",
+            quantities: [""],
+            saved: false,
+            finishingOps: [],
+            SameQty: false
+        }
+    ])
+}
+```
+
+Add the field there too:
+
+```js
+Color: "",
+```
+
+---
+
+## 3. Add it to the component loading code
+
+In the `loadedComponents` mapping, you currently have:
+
+```js
+Component:
+    component.component_name ||
+    "",
+
+Size:
+    component.size ||
+    "",
+
+FlatSize:
+    component.flat_size ||
+    "",
+
+Stock:
+    component.stock ||
+    "",
+
+Coating:
+    component.coating ||
+    "",
+```
+
+Add:
+
+```js
+Color:
+    component.color ||
+    "",
+```
+
+So:
+
+```js
+Component:
+    component.component_name ||
+    "",
+
+Size:
+    component.size ||
+    "",
+
+FlatSize:
+    component.flat_size ||
+    "",
+
+Stock:
+    component.stock ||
+    "",
+
+Coating:
+    component.coating ||
+    "",
+
+Color:
+    component.color ||
+    "",
+```
+
+This is what makes the field populate when you **edit an existing version**.
+
+---
+
+## 4. Add it to the fallback component
+
+You also have this:
+
+```js
+: [{
+    id: crypto.randomUUID(),
+
+    Component: "",
+
+    Size: "",
+
+    FlatSize: "",
+
+    Stock: "",
+
+    Coating: "",
+
+    quantities: [""],
+
+    saved: false,
+
+    finishingOps: [],
+
+    SameQty: false
+}]
+```
+
+Add:
+
+```js
+Color: "",
+```
+
+---
+
+## 5. Add the field to `Components2`
+
+The parent already passes the entire component:
+
+```jsx
+<Components2
+    component={component}
+    ...
+/>
+```
+
+So you **do not need to add another prop just to make the value available**.
+
+Inside `Components2`, you can use:
+
+```js
+component.Color
+```
+
+And update it with the existing generic function:
+
+```js
+updateComponent(
+    index,
+    "Color",
+    e.target.value
+)
+```
+
+For example:
+
+```jsx
+<TextInput
+    label="Color"
+    value={component.Color}
+    onChange={e =>
+        updateComponent(
+            index,
+            "Color",
+            e.target.value
+        )
+    }
+/>
+```
+
+That's one of the nice things about the current setup.
+
+---
+
+# 6. Add it to the Supabase INSERT
+
+Inside `handleSubmit()`, find:
+
+```js
+.from("Components")
+.insert({
+```
+
+You currently have:
+
+```js
+.insert({
+
+    version_id:
+        versionId,
+
+    component_key:
+        component.componentKey,
+
+    component_name:
+        component.Component,
+
+    size:
+        component.Size,
+
+    flat_size:
+        component.FlatSize,
+
+    stock:
+        component.Stock,
+
+    coating:
+        component.Coating,
+
+    saved:
+        component.saved
+})
+```
+
+Add:
+
+```js
+color:
+    component.Color,
+```
+
+So:
+
+```js
+.insert({
+
+    version_id:
+        versionId,
+
+    component_key:
+        component.componentKey,
+
+    component_name:
+        component.Component,
+
+    size:
+        component.Size,
+
+    flat_size:
+        component.FlatSize,
+
+    stock:
+        component.Stock,
+
+    coating:
+        component.Coating,
+
+    color:
+        component.Color,
+
+    saved:
+        component.saved
+})
+```
+
+---
+
+# 7. Add it to `getWhatChanged()`
+
+This is the part that's especially important for the version history.
+
+Inside:
+
+```js
+// CHANGED COMPONENTS
+```
+
+you already have:
+
+```js
+if (
+    (oldComponent.coating || "") !==
+    component.Coating
+) {
+    changes.push(
+        `Changed "${componentName}" coating from "${oldComponent.coating || ""}" to "${component.Coating}"`
+    )
+}
+```
+
+Add:
+
+```js
+if (
+    (oldComponent.color || "") !==
+    component.Color
+) {
+    changes.push(
+        `Changed "${componentName}" color from "${oldComponent.color || ""}" to "${component.Color}"`
+    )
+}
+```
+
+---
+
+# 8. Add the database column
+
+The `Components` table needs:
+
+```sql
+ALTER TABLE "Components"
+ADD COLUMN color text;
+```
+
+---
+
+# So the Components checklist is:
+
+When adding a field to `Components`, you have **8 places** to think about:
+
+```text
+COMPONENT FIELD
+│
+├── 1. Initial component object
+│
+├── 2. addComponent()
+│
+├── 3. Load existing component
+│
+├── 4. Fallback component
+│
+├── 5. Components2 UI
+│
+├── 6. Components Supabase INSERT
+│
+├── 7. getWhatChanged()
+│
+└── 8. Components database column
+```
+
+### The important distinction
+
+For a **normal Project Overview field**:
+
+```js
+const [priority, setPriority] = useState("")
+```
+
+For a **Component field**:
+
+```js
+{
+    Component: "",
+    Size: "",
+    Color: ""
+}
+```
+
+You already have the generic updater:
+
+```js
+updateComponent(index, field, value)
+```
+
+so you can simply do:
+
+```js
+updateComponent(index, "Color", value)
+```
+
+**No new `useState` is needed for `Color`.**
+
+And this same pattern applies to virtually any new field you add to a component—dimensions, ink colors, pages, notes, special instructions, etc.
+
+
+TLDR:
+
+1. **Add the field to the initial component object** in `NewestForm`
+2. **Add the field to `addComponent()`** so new components include it
+3. **Render the field in `Components2`**
+4. **Use `updateComponent()` to update the field** in the component state
+5. **Load the field from `projectToEdit`** in the `useEffect`
+6. **Add the field to the `getWhatChanged()`** component comparison
+7. **Add the field to the `Components` Supabase `.insert()`**
+8. **Add the database column** if it doesn't already exist
