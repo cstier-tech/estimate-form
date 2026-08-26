@@ -4,10 +4,13 @@ import FormSection from "../components/FormSection"
 
 const SERVICE_TYPES = [
     'Kitting',
+    'Packing',
     'Fulfillment',
+    'Distribution',
     'Mailing',
     'Inkjet',
     'Inventory Storage',
+    'Data Prep',
 ]
 
 function ServiceType({
@@ -30,9 +33,9 @@ function ServiceType({
                     onChange={handleServiceTypes}
                 />
             ))}
-            <CheckboxInput label='Other Project Types' checked={isOtherType} name='Other' onChange={(e) => setIsOtherType(e.target.checked)} />
+            <CheckboxInput label='Other Service Types' checked={isOtherType} name='OtherService' onChange={(e) => setIsOtherType(e.target.checked)} />
             {isOtherType &&
-                <TextInput label='Specify other project types (comma separate multiple types if more than 1)' value={otherServiceTypes} onChange={(e) => setOtherServiceTypes(e.target.value)} />
+                <TextInput label='Specify other service types (comma separate multiple types if more than 1)' value={otherServiceTypes} onChange={(e) => setOtherServiceTypes(e.target.value)} />
             }
         </FormSection>
 

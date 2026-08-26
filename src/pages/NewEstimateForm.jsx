@@ -18,6 +18,7 @@ import PackagingRequirements from '../form_sections/PackagingRequirements'
 import ServiceType from '../form_sections/ServiceType'
 import CheckboxInput from '../components/CheckboxInput'
 import Version from '../form_sections/Versions'
+import FinishingOp from '../form_sections/Finishing'
 
 
 const QTY_REPEATING_FIELDS = [
@@ -46,7 +47,7 @@ function NewEstimateForm({ }) {
     const [finalSize, setFinalSize] = useState('')
     const [flatSize, setFlatSize] = useState('')
 
-    //Project Types
+    //Service Types
     const [serviceTypes, setServiceTypes] = useState([])
     const [isOtherType, setIsOtherType] = useState(false)
     const [otherServiceTypes, setOtherServiceTypes] = useState('')
@@ -95,7 +96,8 @@ function NewEstimateForm({ }) {
     //Quantities
     const [hasMultipleQtyLevels, setHasMultipleQtyLevels] = useState(false)
     const [prodQty, setProdQty] = useState()
-    const [addQtys, setaddQtys] = useState([])
+    const [addQtys, setaddQtys] = useState([''])
+    // const [sameQty, setSameQty] = useState(false)
     const addQtyToPrice = () => {
         setaddQtys(prev => [
             ...prev, ''
@@ -150,11 +152,12 @@ function NewEstimateForm({ }) {
         )
     }
 
-    // Packing Requirements
+    // Kits
     const [isKit, setIsKit] = useState(false)
     // Empty until the user explicitly edits it; falls back to the
     // Requested Production Quantity as its prefilled default.
     const [numOfKitsOverride, setNumOfKitsOverride] = useState('')
+
     const numOfKits =
         numOfKitsOverride !== ''
             ? Number(numOfKitsOverride)
@@ -163,7 +166,8 @@ function NewEstimateForm({ }) {
     // Keyed by component index. Only holds values the user has explicitly
     // overridden; anything absent falls back to the computed default.
     const [kitOverrides, setKitOverrides] = useState({})
-
+    const [kitPackaging, setKitPackaging] = useState('')
+    const [kitInstructions, setKitInstructions] = useState('')
     const updateKitQtyPerKit = (index, value) => {
         setKitOverrides(prev => ({
             ...prev,
@@ -178,6 +182,64 @@ function NewEstimateForm({ }) {
         }))
     }
 
+
+
+
+
+    // Finishing Ops
+    const [finishingOps, setFinishingOps] = useState([]);
+    // const [isOtherOp, setIsOtherOp] = useState('')
+    // const [otherFinishingOp, setOtherFinishingOp] = useState('')
+
+    // Finishing Ops Handling
+    const handleFinishingOps = (e) => {
+        const { name, checked } = e.target;
+
+        setFinishingOps(prev => {
+            if (checked) {
+                return [
+                    ...prev,
+                    {
+                        value: name,
+                        details: {}
+                    }
+                ];
+            }
+
+            return prev.filter(op => op.value !== name);
+        });
+    };
+
+    const updateFinishingOps = (index, field, value) => {
+        setFinishingOps(prev =>
+            prev.map((component, i) =>
+                i === index
+                    ? { ...component, [field]: value }
+                    : component
+            )
+        )
+    }
+
+    const updateFinishingOpDetail = (opValue, field, value) => {
+        setFinishingOps(prev =>
+            prev.map(op =>
+                op.value === opValue
+                    ? {
+                        ...op,
+                        details: {
+                            ...op.details,
+                            [field]: value
+                        }
+                    }
+                    : op
+            )
+        );
+    };
+
+
+
+
+    // Kits
     const buildKit = () => {
         const qty = numOfKits
 
@@ -231,30 +293,45 @@ function NewEstimateForm({ }) {
                 .filter(item => item.value)
         ];
 
+        const finalFinishingOps = [
+            ...finishingOps.map(type => ({
+                source: 'check',
+                value: type
+            })),
+            // ...otherFinishingOp
+            //     .split(',')
+            //     .map(item => ({
+            //         source: 'custom',
+            //         value: item.trim()
+            //     }))
+            //     .filter(item => item.value)
+        ];
+
         const estimateData = {
             client_name: clientName,
             project_name: projName,
             project_desc: projDesc,
-            material_code: materialCode,
-            revision_version: revisionVersion,
+            // material_code: materialCode,
+            // revision_version: revisionVersion,
             due_date: dueDate,
             sales_rep: salesRep,
             prev_job_no: prevJobNo,
             prev_estimate_no: prevEstNo,
-            project_types: finalServiceTypes,
-            product_type: productType,
+            service_types: finalServiceTypes,
+            // product_type: productType,
             production_qty: prodQty,
             additional_qtys: addQtys,
             components: components,
-            num_of_kits: isKit ? numOfKits : undefined,
-            kit: kitContents,
+            // num_of_kits: isKit ? numOfKits : undefined,
+            kit: { kitsQty: numOfKits, kitPackaging: kitPackaging, kitInstructions: kitInstructions, kitContents: kitContents },
             versions: versions,
             flat_size: flatSize,
             final_size: finalSize,
             pages_qty: pagesQty,
             stock: stock,
             coating: coating,
-            pi_part_num: pIPartNumber
+            pi_part_num: pIPartNumber,
+            finishing: finishingOps,
         };
 
         console.log(estimateData);
@@ -274,6 +351,9 @@ function NewEstimateForm({ }) {
         const value = e.target.value;
         setOtherServiceTypes(value)
     }
+
+
+
 
 
     return (
@@ -345,18 +425,22 @@ function NewEstimateForm({ }) {
                             updateQty={updateQty}
                             removeQty={removeQty}
                             addQtyToPrice={addQtyToPrice}
+                            // sameQty={sameQty}
+                            // setSameQty={setSameQty}
                         />
+                        
+                        
                     </FormSection>
 
 
-                    <ServiceType
+                    {/* <ServiceType
                         serviceTypes={serviceTypes}
                         handleServiceTypes={handleServiceTypes}
                         isOtherType={isOtherType}
                         setIsOtherType={setIsOtherType}
                         otherServiceTypes={otherServiceTypes}
                         setOtherServiceTypes={setOtherServiceTypes}
-                    />
+                    /> */}
 
 
                     <FormSection legend='Components'>
@@ -368,6 +452,8 @@ function NewEstimateForm({ }) {
                                 updateComponent={updateComponent}
                                 removeComponent={removeComponent}
                                 productType={productType}
+                                prodQtys={addQtys}
+
                             />
                         ))}
                         <Button
@@ -380,9 +466,21 @@ function NewEstimateForm({ }) {
                         setIsKit={setIsKit}
                         numOfKits={numOfKitsOverride !== '' ? numOfKitsOverride : (prodQty ?? '')}
                         setNumOfKits={setNumOfKitsOverride}
+                        kitPackaging={kitPackaging}
+                        setKitPackaging={setKitPackaging}
                         kitContents={kitContents}
                         updateKitQtyPerKit={updateKitQtyPerKit}
                         updateKitOverageHandling={updateKitOverageHandling}
+                    />
+
+                    <FinishingOp
+                        finishingOps={finishingOps}
+                        handleFinishingOps={handleFinishingOps}
+                        updateFinishingOpDetail={updateFinishingOpDetail}
+                        // isOtherOp={isOtherOp}
+                        // setIsOtherOp={setIsOtherOp}
+                        // otherFinishingOp={otherFinishingOp}
+                        // setOtherFinishingOp={setOtherFinishingOp}
                     />
 
                     <div className="flex justify-end">

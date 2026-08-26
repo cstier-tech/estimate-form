@@ -28,6 +28,7 @@ const SERVICE_TYPES = [
     { label: 'Fulfillment', name: 'Fulfillment' },
     { label: 'Mailing', name: 'Mailing' },
     { label: 'Inkjet', name: 'Inkjet' },
+    { label: 'Distribution', name: 'Distribution' },
     { label: 'Kitting', name: 'Kitting' },
     { label: 'Packaging', name: 'Packaging' },
     { label: 'Distribution', name: 'Distribution' },
@@ -48,20 +49,11 @@ function ProjectOverview({
     projDesc,
     setProjDesc,
 
-    materialCode,
-    setMaterialCode,
-
-    revisionVersion,
-    setRevisionVersion,
-
     dueDate,
     setDueDate,
 
     salesRep,
     setSalesRep,
-
-    productType,
-    setProductType,
 
     jobType,
     setJobType,
@@ -72,52 +64,69 @@ function ProjectOverview({
     prevEstNo,
     setPrevEstNo,
 
-    prevJobDifference,
-    setPrevJobDifference,
-
-    hasMultipleVersions,
-    setHaasMultipleVersions,
-
 }) {
     return (
         <>
+            <div className='md:grid gap-3 md:grid-cols-2'>
+                {/* Client Name */}
+                {/* <TextInput label='Client Name' name='ClientName' value={clientName} onChange={(e) => setClientName(e.target.value)} readOnly disabled /> */}
+                <TextInput label='Client Name' name='ClientName' value={clientName} onChange={(e) => setClientName(e.target.value)} />
 
-            {/* Client Name */}
-            <TextInput label='Client Name' name='ClientName' value={clientName} onChange={(e) => setClientName(e.target.value)} readOnly disabled />
+                {/* Customer Number */}
+                {/* <TextInput label='Customer Number' name='CustomerNumner' value={customerNumber} onChange={(e) => setCustomerNumber(e.target.value)} readOnly disabled /> */}
+                <TextInput label='Customer Number' name='CustomerNumner' value={customerNumber} onChange={(e) => setCustomerNumber(e.target.value)} />
 
-            {/* Customer Number */}
-            <TextInput label='Customer Number' name='CustomerNumner' value={customerNumber} onChange={(e) => setCustomerNumber(e.target.value)} readOnly disabled />
+                {/* Job Name/Title */}
+                <TextInput label='Project Name (optional)' name='ProjName' value={projName} onChange={(e) => setProjName(e.target.value)} />
 
-            {/* Job Name/Title */}
-            <TextInput label='Project Name (optional)' name='ProjName' value={projName} onChange={(e) => setProjName(e.target.value)} />
+                {/* Material Code
+            <TextInput label='Material Code' name='MaterialCode' value={materialCode} onChange={(e) => setMaterialCode(e.target.value)} /> */}
 
-            {/* Material Code */}
-            <TextInput label='Material Code' name='MaterialCode' value={materialCode} onChange={(e) => setMaterialCode(e.target.value)} />
+                {/* Revision Version
+            <TextInput label='Revision Version' name='RevisionVersion' value={revisionVersion} onChange={(e) => setRevisionVersion(e.target.value)} /> */}
 
-            {/* Revision Version */}
-            <TextInput label='Revision Version' name='RevisionVersion' value={revisionVersion} onChange={(e) => setRevisionVersion(e.target.value)} />
-
-            {/* Job Description */}
-            <Textarea label='Project Description' name='ProjDesc' placeholder='Briefly describe the finished piece and work to be performed.' value={projDesc} onChange={(e) => setProjDesc(e.target.value)} required rows={4} />
-
-            {/* Estimate Due Date */}
-            <DateInput label='Estimate Due Date' value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-
-            {/* Sales Rep Name */}
-            <TextInput label='Sales Rep' name='SalesRep' value={salesRep} onChange={(e) => setSalesRep(e.target.value)} readOnly disabled />
-
-            {/* Product Type */}
-            <SelectInput options={PRODUCT_TYPE} label='Product Type' value={productType} onChange={(e) => setProductType(e.target.value)} />
-
-            {/* Job Type */}
-            <SelectInput options={JOB_TYPE} label='Job Type' value={jobType} onChange={(e) => setJobType(e.target.value)} />
-
-            {/*  ----- If job type = reprint or quote update ----- */}
+                {/* Job Description */}
 
 
-            {(jobType == 'Reprint – No Changes' || jobType == 'Reprint – With Changes' || jobType == 'Quote Update') && <TextInput label='Previous Job # (if applicable)' name='PrevJobNo' value={prevJobNo} onChange={(e) => setPrevJobNo(e.target.value)} />}
-            {(jobType == 'Reprint – No Changes' || jobType == 'Reprint – With Changes' || jobType == 'Quote Update') && <TextInput label='Previous Estimate # (if applicable)' name='PrevEstNo' value={prevEstNo} onChange={(e) => setPrevEstNo(e.target.value)} />}
-            {(jobType == 'Reprint – With Changes' || jobType == 'Quote Update') && <TextInput label='What changed from the previous job or quote?' />}
+                {/* Estimate Due Date */}
+                <DateInput label='Estimate Due Date' value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+
+                {/* Sales Rep Name */}
+                {/* <TextInput label='Sales Rep' name='SalesRep' value={salesRep} onChange={(e) => setSalesRep(e.target.value)} readOnly disabled /> */}
+                <TextInput label='Sales Rep' name='SalesRep' value={salesRep} onChange={(e) => setSalesRep(e.target.value)} />
+
+                {/* Product Type
+            <SelectInput options={PRODUCT_TYPE} label='Product Type' value={productType} onChange={(e) => setProductType(e.target.value)} /> */}
+
+                {/* Job Type */}
+                <SelectInput options={JOB_TYPE} label='Job Type' value={jobType} onChange={(e) => setJobType(e.target.value)} />
+
+                {/*  ----- If job type = reprint or quote update ----- */}
+                {(jobType == 'Reprint – No Changes' || jobType == 'Reprint – With Changes' || jobType == 'Quote Update') &&
+                    <div className='flex gap-3 col-span-2 border border-gray-200 p-3 rounded-md bg-gray-50'>
+                        {(jobType == 'Reprint – No Changes' || jobType == 'Reprint – With Changes' || jobType == 'Quote Update') &&
+                            <div className='grow'>
+                                <TextInput label='Previous Job # (if applicable)' name='PrevJobNo' value={prevJobNo} onChange={(e) => setPrevJobNo(e.target.value)} />
+                            </div>
+                        }
+                        {(jobType == 'Reprint – No Changes' || jobType == 'Reprint – With Changes' || jobType == 'Quote Update') &&
+                            <div className='grow'>
+                                <TextInput label='Previous Estimate # (if applicable)' name='PrevEstNo' value={prevEstNo} onChange={(e) => setPrevEstNo(e.target.value)} />
+                            </div>
+                        }
+                        {(jobType == 'Reprint – With Changes' || jobType == 'Quote Update') &&
+                            <div className='grow'>
+                                <TextInput label='Changes from previous job or quote?' />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div className='col-span-2'>
+                    <Textarea label='Project Description' name='ProjDesc' placeholder='Briefly describe the finished piece and work to be performed.' value={projDesc} onChange={(e) => setProjDesc(e.target.value)} required rows={4} />
+                </div>
+            </div>
+
 
 
         </>

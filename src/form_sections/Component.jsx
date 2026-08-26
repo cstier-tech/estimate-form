@@ -25,19 +25,6 @@ const FOLD_TYPE = [
     { label: 'Other', value: 'Other' },
 ]
 
-const ASSEMBLY_TYPES = [
-    'Insert into pocket',
-    'Folder forming',
-    'Capacity forming',
-    'Pocket assembly',
-    'Tab lock assembly',
-    'Rivet installation',
-    'Cord insertion',
-    'Gluing',
-    'Folding',
-    'Multi-piece kit assembly',
-]
-
 const PERFORMED_BY_OPTIONS = [
     { label: 'LCP', value: 'LCP' },
     { label: 'LCP Complete', value: 'LCPC' },
@@ -48,29 +35,9 @@ function Component({
     index,
     updateComponent,
     removeComponent,
-    productType
+    addQtys
 }) {
-    const toggleAssemblyType = (assemblyType, checked) => {
-        const current = component.AssemblyTypes || []
 
-        const next = checked
-            ? [...current, assemblyType]
-            : current.filter(x => x !== assemblyType)
-
-        updateComponent(index, 'AssemblyTypes', next)
-    }
-
-    const finishing = component.Finishing || {}
-
-    const updateFinishingGroup = (group, field, value) => {
-        updateComponent(index, 'Finishing', {
-            ...finishing,
-            [group]: {
-                ...finishing[group],
-                [field]: value
-            }
-        })
-    }
     return (
         <fieldset className="rounded-lg border border-sky-200 bg-sky-50 p-4 flex flex-col gap-3">
             <legend className="px-1 text-sm font-semibold text-gray-800">
@@ -90,52 +57,45 @@ function Component({
             />
 
             <TextInput
-                label="Flat Size"
-                value={component.FlatSize}
+                label="Size"
+                value={component.Size}
                 placeholder='W x H'
                 onChange={(e) =>
                     updateComponent(
                         index,
-                        'FlatSize',
+                        'Size',
                         e.target.value
                     )
                 }
             />
+            {!component.SameQty &&
+                <NumberInput
+                    label="Total Qty"
+                    value={component.ComponentQty}
+                    onChange={(e) =>
+                        updateComponent(
+                            index,
+                            'ComponentQty',
+                            e.target.value
+                        )
+                    }
+                />
+            }
 
-            <TextInput
-                label="Final Size"
-                value={component.FinalSize}
-                placeholder='W x H'
-                onChange={(e) =>
-                    updateComponent(
-                        index,
-                        'FinalSize',
-                        e.target.value
-                    )
-                }
-            />
-            <NumberInput
-                label="Number of Pages / Panels"
-                value={component.PagesQty}
-                onChange={(e) =>
-                    updateComponent(
-                        index,
-                        'PagesQty',
-                        e.target.value
-                    )
-                }
-            />
-            <NumberInput
-                label="Total Qty"
-                value={component.ComponentQty}
-                onChange={(e) =>
-                    updateComponent(
-                        index,
-                        'ComponentQty',
-                        e.target.value
-                    )
-                }
-            />
+            <CheckboxInput label='Same as production quantity/quantities' name='SameQty' checked={component.SameQty || false} onChange={(e) =>
+                updateComponent(
+                    index,
+                    'SameQty',
+                    e.target.checked
+                )
+            } />
+            {component.SameQty && 
+                <div>
+                   {addQtys.map((qty) => (
+                    <p>{qty}</p>
+                   ))}
+                </div>
+             } 
             <TextInput
                 label="Stock"
                 value={component.Stock}
@@ -172,7 +132,7 @@ function Component({
                     )
                 }
             />
-            <TextInput
+            {/* <TextInput
                 label="PI Part Number"
                 value={component.PIPartNumber}
                 onChange={(e) =>
@@ -182,8 +142,8 @@ function Component({
                         e.target.value
                     )
                 }
-            />
-            <hr />
+            /> */}
+            {/* <hr />
             <h3>Finishing</h3>
             <div>
                 <CheckboxInput
@@ -424,7 +384,7 @@ function Component({
                     />
                 )}
                 {/* Only show this is fold type != none or '' */}
-                {finishing.Fold?.Type !== '' &&
+            {/* {finishing.Fold?.Type !== '' &&
                     <RadioGroup
                         label='Performed by'
                         name={`FoldTypePerformedBy`}
@@ -551,7 +511,7 @@ function Component({
                     }
                     rows={3}
                 />
-            </div>
+            </div> */}
             {/* <CheckboxInput
                 label="Requires Assembly?"
                 checked={component.RequireAssembly}
@@ -623,12 +583,15 @@ function Component({
                     />
                 </fieldset>
             )}
+            <div>
 
-            <Button
-                label="Remove"
-                variant="danger"
-                onClick={() => removeComponent(index)}
-            />
+                <Button
+                    label="Remove"
+                    variant="danger"
+                    onClick={() => removeComponent(index)}
+                />
+            </div>
+
         </fieldset>
     )
 }
