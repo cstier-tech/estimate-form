@@ -319,7 +319,7 @@ Then you need to make sure it is:
 
 1. Initialized when creating a component
 2. Loaded when editing
-3. Passed to `Components2`
+3. Passed to `JobComponents`
 4. Updated by `updateComponent`
 5. Saved to `Components`
 6. Compared in `getWhatChanged()`
@@ -359,9 +359,9 @@ Whenever you add a new field, run through this list:
    ↓
 3. Load property from Supabase
    ↓
-4. Pass component to Components2
+4. Pass component to JobComponents
    ↓
-5. Render/update field in Components2
+5. Render/update field in JobComponents
    ↓
 6. Save property to Components
    ↓
@@ -643,12 +643,12 @@ Color: "",
 
 ---
 
-## 5. Add the field to `Components2`
+## 5. Add the field to `JobComponents`
 
 The parent already passes the entire component:
 
 ```jsx
-<Components2
+<JobComponents
     component={component}
     ...
 />
@@ -656,7 +656,7 @@ The parent already passes the entire component:
 
 So you **do not need to add another prop just to make the value available**.
 
-Inside `Components2`, you can use:
+Inside `JobComponents`, you can use:
 
 ```js
 component.Color
@@ -839,7 +839,7 @@ COMPONENT FIELD
 │
 ├── 4. Fallback component
 │
-├── 5. Components2 UI
+├── 5. JobComponents UI
 │
 ├── 6. Components Supabase INSERT
 │
@@ -887,7 +887,7 @@ TLDR:
 
 1. **Add the field to the initial component object** in `NewestForm`
 2. **Add the field to `addComponent()`** so new components include it
-3. **Render the field in `Components2`**
+3. **Render the field in `JobComponents`**
 4. **Use `updateComponent()` to update the field** in the component state
 5. **Load the field from `projectToEdit`** in the `useEffect`
 6. **Add the field to the `getWhatChanged()`** component comparison

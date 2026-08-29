@@ -1,45 +1,60 @@
 import { useState } from 'react'
-import EstimateForm from './pages/EstimateForm'
-import EstimateViewer from './pages/EstimateViewer'
-import Button from './components/Button'
-import ButtonBar from './components/ButtonBar'
-import NewEstimateForm from './pages/NewEstimateForm'
-import NewestForm from './pages/NewestForm'
-import ProjectViewer from './pages/ProjectViewer'
 import ProjectsPage from './pages/ProjectsPage'
+import Header from './components/layout_parts/Header'
 
-
-
+// user, clientName and customerNumber come from URL query params
+// (e.g. ?user=Jane&clientName=Acme&customerNumber=12345), not the form.
+function readUrlParam(name) {
+  return new URLSearchParams(window.location.search).get(name) || ''
+}
 
 function App() {
-  // const [activePage, setActivePage] = useState('form')
-  // const [editingEstimateId, setEditingEstimateId] = useState(null)
+  const user = readUrlParam('user')
+  const clientName = readUrlParam('clientName')
+  const customerNumber = readUrlParam('customerNumber')
+
+  // 'list' shows ProjectViewer, 'form' shows NewestForm, 'outline' shows the
+  // FormOutline testing reference. The header buttons are the only nav.
+  const [view, setView] = useState('list')
+  const [editingProject, setEditingProject] = useState(null)
+
+  function showNewForm() {
+    setEditingProject(null)
+    setView('form')
+  }
+
+  function showList() {
+    setEditingProject(null)
+    setView('list')
+  }
+
+  function showOutline() {
+    setEditingProject(null)
+    setView('outline')
+  }
+
+  function editProject(project) {
+    setEditingProject(project)
+    setView('form')
+  }
+
   return (
-    // <div className="min-h-screen bg-gray-50">
-    //   <div className="border-b border-gray-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
-    //     <ButtonBar>
-    //       <Button label='Form' onClick={(e) => setActivePage('form')} />
-    //       <Button label='View' onClick={(e) => setActivePage('view')} />
-    //     </ButtonBar>
-    //   </div>
-
-    //   {activePage == 'form' &&
-    //     <div className='px-4 py-10 sm:px-6 lg:px-8'>
-    //     <div className='mx-auto max-w-3xl'>
-    //       <NewestForm />
-    //     </div>
-    //   </div>
-    //   }
-
-    //   {activePage == 'view' &&
-    //     <ProjectViewer />
-    //   }
-    //   {/* <NewEstimateForm /> */}
-      
-
-    // </div>
-
-    <ProjectsPage />
+    <div>
+      <Header
+        onNewRfe={showNewForm}
+        onViewRfes={showList}
+        onOutline={showOutline}
+      />
+      <ProjectsPage
+        view={view}
+        editingProject={editingProject}
+        user={user}
+        clientName={clientName}
+        customerNumber={customerNumber}
+        onEditProject={editProject}
+        onSaved={showList}
+      />
+    </div>
   )
 }
 

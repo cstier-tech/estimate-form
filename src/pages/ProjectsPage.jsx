@@ -1,36 +1,27 @@
-import { useState } from "react"
-
 import NewestForm from "./NewestForm"
 import ProjectViewer from "./ProjectViewer"
+import FormOutline from "./FormOutline"
 
-function ProjectsPage() {
-    const [editingProject, setEditingProject] = useState(null)
-
+function ProjectsPage({ view, editingProject, user, clientName, customerNumber, onEditProject, onSaved }) {
     return (
         <div className='px-4 py-10 sm:px-6 lg:px-8 bg-gray-50 min-h-screen h-full'>
-            {editingProject ? (
-                <div  className='mx-auto max-w-3xl'>
-                    <button
-                        type="button"
-                        onClick={() => setEditingProject(null)}
-                        className="mb-4 rounded bg-gray-500 px-4 py-2 text-white"
-                    >
-                        Back to Projects
-                    </button>
-
-                    <NewestForm
-                        projectToEdit={editingProject}
-                        onSaved={() => {
-                            setEditingProject(null)
-                        }}
-                    />
-                </div>
-            ) : (
-                <ProjectViewer
-                    onEdit={project => {
-                        setEditingProject(project)
-                    }}
+            {view === 'form' && (
+                // <div className='mx-auto max-w-3xl'>
+                <NewestForm
+                    key={editingProject?.id ?? 'new'}
+                    projectToEdit={editingProject}
+                    user={user}
+                    clientName={clientName}
+                    customerNumber={customerNumber}
+                    onSaved={onSaved}
                 />
+                // </div>
+            )}
+
+            {view === 'outline' && <FormOutline />}
+
+            {view === 'list' && (
+                <ProjectViewer onEdit={onEditProject} />
             )}
         </div>
     )

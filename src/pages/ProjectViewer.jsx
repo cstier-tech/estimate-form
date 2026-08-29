@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../lib/supabaseClient"
-import NewestForm from "./NewestForm"
 
 function ProjectViewer({ onEdit }) {
     const [projects, setProjects] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
-    const [showForm, setShowForm] = useState(false)
-    const [editingProject, setEditingProject] = useState(null)
 
     useEffect(() => {
         fetchProjects()
@@ -27,7 +24,8 @@ function ProjectViewer({ onEdit }) {
                 componentFinishingResult,
                 kitsResult,
                 kitQuantitiesResult,
-                mailingResult
+                mailingResult,
+                packsResult
             ] = await Promise.all([
                 // =====================================================
                 // PARENT PROJECTS
@@ -81,7 +79,7 @@ function ProjectViewer({ onEdit }) {
                 // KITS
                 // =====================================================
                 supabase
-                    .from("Kits")
+                    .from("Kit Items")
                     .select("*"),
 
                 // =====================================================
@@ -96,6 +94,13 @@ function ProjectViewer({ onEdit }) {
                 // =====================================================
                 supabase
                     .from("Mailing")
+                    .select("*"),
+
+                // =====================================================
+                // PACKS
+                // =====================================================
+                supabase
+                    .from("Packs")
                     .select("*")
             ])
 
@@ -139,6 +144,10 @@ function ProjectViewer({ onEdit }) {
                 throw mailingResult.error
             }
 
+            if (packsResult.error) {
+                throw packsResult.error
+            }
+
             const projectsData =
                 projectsResult.data || []
 
@@ -165,6 +174,9 @@ function ProjectViewer({ onEdit }) {
 
             const mailingData =
                 mailingResult.data || []
+
+            const packsData =
+                packsResult.data || []
 
             // =====================================================
             // BUILD PROJECT DATA
@@ -227,6 +239,7 @@ function ProjectViewer({ onEdit }) {
                             components: [],
                             kits: [],
                             mailing: null,
+                            packs: [],
 
                             versions: []
                         }
@@ -313,6 +326,17 @@ function ProjectViewer({ onEdit }) {
                         ) || null
 
                     // =================================================
+                    // PACKS
+                    // =================================================
+
+                    const packs =
+                        packsData.filter(
+                            pack =>
+                                pack.version_id ===
+                                versionId
+                        )
+
+                    // =================================================
                     // RETURN PROJECT
                     // =================================================
 
@@ -365,6 +389,8 @@ function ProjectViewer({ onEdit }) {
                         kits,
 
                         mailing,
+
+                        packs,
 
                         // Complete version history
                         versions:
@@ -464,54 +490,11 @@ function ProjectViewer({ onEdit }) {
     }
 
     // =====================================================
-    // FORM
-    // =====================================================
-
-    if (showForm) {
-        return (
-            <div className="mx-auto max-w-3xl">
-                <NewestForm
-                    projectToEdit={
-                        editingProject
-                    }
-
-                    onSaved={() => {
-                        setShowForm(false)
-                        setEditingProject(null)
-                        fetchProjects()
-                    }}
-
-                    onCancel={() => {
-                        setShowForm(false)
-                        setEditingProject(null)
-                        fetchProjects()
-                    }}
-                />
-            </div>
-        )
-    }
-
-    // =====================================================
     // PROJECT TABLE
     // =====================================================
 
     return (
         <div className="overflow-x-auto">
-
-            {/* =================================================
-                NEW PROJECT BUTTON
-            ================================================= */}
-
-            <button
-                type="button"
-                onClick={() => {
-                    setEditingProject(null)
-                    setShowForm(true)
-                }}
-                className="mb-4 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-            >
-                + New Project
-            </button>
 
             <table className="w-full border-collapse border border-gray-300 rounded-md bg-white">
 
@@ -1205,21 +1188,7 @@ function ProjectViewer({ onEdit }) {
 
                                     <button
                                         type="button"
-                                        onClick={() => {
-
-                                            if (onEdit) {
-                                                onEdit(project)
-                                                return
-                                            }
-
-                                            setEditingProject(
-                                                project
-                                            )
-
-                                            setShowForm(
-                                                true
-                                            )
-                                        }}
+                                        onClick={() => onEdit(project)}
                                         className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
                                     >
                                         Edit

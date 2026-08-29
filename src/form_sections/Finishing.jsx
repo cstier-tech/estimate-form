@@ -1,6 +1,7 @@
 import CheckboxInput from "../components/CheckboxInput"
 import TextInput from "../components/TextInput"
 import FormSection from "../components/FormSection"
+import SelectInput from "../components/SelectInput"
 
 const FINISHING_OPS = [
     {
@@ -32,14 +33,39 @@ const FINISHING_OPS = [
     {
         label: 'Score',
         value: 'score',
-        // fields: 'Performed By?'
+
     },
     {
         label: 'Folding',
         value: 'folding',
         fields: [
-
-        ]
+            {
+                label: 'Fold Type',
+                name: 'foldType',
+                type: 'select',
+                options: [
+                    {
+                        label: 'Trifold',
+                        value: 'trifold'
+                    },
+                    {
+                        label: 'Roll Fold',
+                        value: 'rollfold'
+                    },
+                    {
+                        label: 'Other',
+                        value: 'other'
+                    },
+                ]
+            },
+            // only show this is Other from above is selected? 
+            {
+                label: 'Specify Other',
+                name: 'otherfoldtype',
+                type: 'text',
+                showWhen: { field: 'foldType', value: 'other' }
+            }
+        ],
     },
     {
         label: 'Glue / Seal',
@@ -99,8 +125,7 @@ function FinishingOp({
 
 }) {
     return (
-        <FormSection legend='Finishing'>
-            <p className='mt-1 mb-0 text-sm text-gray-800'>Select all that apply</p>
+        <div>
             {FINISHING_OPS.map(op => {
                 const selectedOp = finishingOps.find(
                     item => item.value === op.value
@@ -118,47 +143,65 @@ function FinishingOp({
 
                         {selectedOp && op.fields && (
                             <div className="ml-6 mb-4 space-y-3 pt-2">
-                                {op.fields.map((field, i) => (
-                                    <div key={i}>
-                                        {field.type === 'text' &&
-                                            <TextInput
-                                                key={field.name}
-                                                label={field.label}
-                                                value={selectedOp.details[field.name] || ''}
-                                                onChange={(e) =>
-                                                    updateFinishingOpDetail(
-                                                        op.value,
-                                                        field.name,
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                        }
-                                        {field.type === 'checkbox' &&
-                                            <CheckboxInput
-                                                label={field.label}
-                                                name={field.name}
-                                                id={`component-${componentId}-finishing-${op.value}-${field.name}`}
-                                                checked={selectedOp.details[field.name] || false}
-                                                onChange={(e) =>
-                                                    updateFinishingOpDetail(
-                                                        op.value,
-                                                        field.name,
-                                                        e.target.checked
-                                                    )
-                                                }
-                                            />
-                                        }
-                                    </div>
-
-
-                                ))}
+                                {op.fields.map((field, i) => {
+                                    if (field.showWhen && selectedOp.details[field.showWhen.field] !== field.showWhen.value) {
+                                        return null;
+                                    }
+                                    return (
+                                        <div key={i}>
+                                            {field.type === 'text' &&
+                                                <TextInput
+                                                    key={field.name}
+                                                    label={field.label}
+                                                    value={selectedOp.details[field.name] || ''}
+                                                    onChange={(e) =>
+                                                        updateFinishingOpDetail(
+                                                            op.value,
+                                                            field.name,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                />
+                                            }
+                                            {field.type === 'checkbox' &&
+                                                <CheckboxInput
+                                                    label={field.label}
+                                                    name={field.name}
+                                                    id={`component-${componentId}-finishing-${op.value}-${field.name}`}
+                                                    checked={selectedOp.details[field.name] || false}
+                                                    onChange={(e) =>
+                                                        updateFinishingOpDetail(
+                                                            op.value,
+                                                            field.name,
+                                                            e.target.checked
+                                                        )
+                                                    }
+                                                />
+                                            }
+                                            {field.type === 'select' &&
+                                                <SelectInput
+                                                    label={field.label}
+                                                    name={field.name}
+                                                    options={field.options}
+                                                    value={selectedOp.details[field.name] || ''}
+                                                    onChange={(e) =>
+                                                        updateFinishingOpDetail(
+                                                            op.value,
+                                                            field.name,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                />
+                                            }
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
                 );
             })}
-        </FormSection>
+        </div>
 
     )
 }

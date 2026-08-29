@@ -5,7 +5,6 @@ import FormSection from "../components/FormSection"
 const SERVICE_TYPES = [
     'Kitting',
     'Packing',
-    'Fulfillment',
     'Distribution',
     'Mailing',
     'Inkjet',
@@ -22,8 +21,7 @@ function ServiceType({
     setOtherServiceTypes,
 }) {
     return (
-        <FormSection legend='Service Type'>
-            <p className='mt-1 mb-0 text-sm text-gray-800'>Select all that apply</p>
+        <div className="flex flex-col gap-1">
             {SERVICE_TYPES.map((label) => (
                 <CheckboxInput
                     key={label}
@@ -37,7 +35,7 @@ function ServiceType({
             {isOtherType &&
                 <TextInput label='Specify other service types (comma separate multiple types if more than 1)' value={otherServiceTypes} onChange={(e) => setOtherServiceTypes(e.target.value)} />
             }
-        </FormSection>
+        </div>
 
     )
 }
