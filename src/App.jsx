@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import ProjectsPage from './pages/ProjectsPage'
 import Header from './components/layout_parts/Header'
+import Form from './Form2/Form'
+import Steppers from './Form2/Steppers'
 
 // user, clientName and customerNumber come from URL query params
 // (e.g. ?user=Jane&clientName=Acme&customerNumber=12345), not the form.
@@ -38,6 +40,8 @@ function App() {
     setView('form')
   }
 
+  const [projectName, setProjectName] = useState('')
+
   return (
     <div>
       <Header
@@ -45,7 +49,7 @@ function App() {
         onViewRfes={showList}
         onOutline={showOutline}
       />
-      <ProjectsPage
+      {/* <ProjectsPage
         view={view}
         editingProject={editingProject}
         user={user}
@@ -53,6 +57,11 @@ function App() {
         customerNumber={customerNumber}
         onEditProject={editProject}
         onSaved={showList}
+      /> */}
+      
+      <Form
+        projectName={projectName}
+        setProjectName={setProjectName}
       />
     </div>
   )

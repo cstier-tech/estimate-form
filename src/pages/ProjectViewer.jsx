@@ -32,7 +32,7 @@ function ProjectViewer({ onEdit }) {
                 // PARENT PROJECTS
                 // =====================================================
                 supabase
-                    .from("Projects")
+                    .from("RFEs")
                     .select("*")
                     .order("created_at", {
                         ascending: false
@@ -42,7 +42,7 @@ function ProjectViewer({ onEdit }) {
                 // PROJECT VERSIONS
                 // =====================================================
                 supabase
-                    .from("Project Versions")
+                    .from("RFE Versions")
                     .select("*")
                     .order("version_number", {
                         ascending: false
@@ -52,7 +52,7 @@ function ProjectViewer({ onEdit }) {
                 // PROJECT QUANTITIES
                 // =====================================================
                 supabase
-                    .from("Project Quantities")
+                    .from("RFE Quantities")
                     .select("*"),
 
                 // =====================================================
