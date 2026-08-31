@@ -1,83 +1,147 @@
+import { useEffect } from "react"
 import TextInput from "../components/TextInput"
-import QuantityControl from "./QuantityControl"
+import NumberInput from "../components/NumberInput"
 import FormSection from "../components/FormSection"
 import Button from "../components/Button"
 
-const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(2))
+const nf = new Intl.NumberFormat()
 
-// Pieces of `component` that belong in a single kit at completed-units level `i`:
-// the component quantity divided by the number of completed units.
-function expectedPerKit(component, completedUnits, i) {
-    const componentQty = Number(component?.quantities?.[i])
-    const units = Number(completedUnits?.[i])
-    if (!component || !componentQty || !units) return null
-    return componentQty / units
+// The even split — component pieces produced divided by finished kits — taken
+// from the first quote level where both numbers are known. Rounded to 2 dp so
+// clean data lands on a whole number.
+function suggestPerKit(component, totalQtys) {
+    if (!component) return null
+    for (let i = 0; i < totalQtys.length; i++) {
+        const completed = Number(totalQtys[i]) || 0
+        const produced = Number(component.quantities?.[i]) || 0
+        if (completed > 0 && produced > 0) {
+            return {
+                value: Math.round((produced / completed) * 100) / 100,
+                produced,
+                completed,
+            }
+        }
+    }
+    return null
 }
 
 function Kitting({
-    kit,
-    updateKit,
+    kitItem,
     index,
-    updateKitQtyCount,
-    updateKitQtyVal,
-    removeKit,
-    removeKitQty,
-    // The component this kit was generated from (automatic kits only) and the
-    // project-level completed-units quantities, used to suggest a qty per kit
-    // and flag discrepancies.
+    updateKitItem,
+    removeKitItem,
+    // The component this kit item is built from (null for manual items) and the
+    // completed-units quantities, used to prefill Qty per kit and to show how
+    // per-kit demand compares to what the Components step will produce.
     component = null,
-    completedUnits = [],
+    totalQtys = [],
 }) {
-    const isAutomatic = kit.source === 'component'
+    const isFromComponent = kitItem.source === "component"
+    const perKit = Number(kitItem.qtyPerKit) || 0
+
+    const suggestion = suggestPerKit(component, totalQtys)
+    const suggestedValue = suggestion ? suggestion.value : null
+
+    const levels = totalQtys
+        .map((qty, i) => ({ completedUnits: Number(qty) || 0, i }))
+        .filter(level => level.completedUnits > 0)
+
+    const showReconciliation = Boolean(component) && perKit > 0 && levels.length > 0
+
+    // An overage only exists when a level produces more pieces than its kits
+    // consume — that leftover is what "overage action" is about.
+    const hasOverage = Boolean(component) && perKit > 0 && levels.some(({ completedUnits, i }) => {
+        const produced = Number(component.quantities?.[i]) || 0
+        return produced > perKit * completedUnits
+    })
+
+    // Prefill the even split once, while the field is still untouched. Editing
+    // it (or clearing it to a non-empty value) keeps the user's number.
+    useEffect(() => {
+        const current = kitItem.qtyPerKit
+        if ((current === "" || current == null) && suggestedValue != null) {
+            updateKitItem(index, "qtyPerKit", String(suggestedValue))
+        }
+    }, [suggestedValue, kitItem.qtyPerKit, index, updateKitItem])
+
+    // Keep state matching the UI: an overage action that's no longer shown
+    // shouldn't get saved.
+    useEffect(() => {
+        if (!hasOverage && kitItem.overageAction) {
+            updateKitItem(index, "overageAction", "")
+        }
+    }, [hasOverage, kitItem.overageAction, index, updateKitItem])
+
     return (
-        <FormSection bg="bg-sky-50" border="border-blue-200" legend={kit.Kit || `Kit ${index + 1}`}>
-            {!isAutomatic &&
+        <FormSection
+            bg="bg-sky-50"
+            border="border-blue-200"
+            legend={kitItem.name || `Kit Item ${index + 1}`}
+        >
+            {!isFromComponent && (
                 <TextInput
-                    label="Kit Name"
-                    value={kit.Kit}
-                    onChange={(e) => updateKit(index, 'Kit', e.target.value)}
+                    label="Kit Item Name"
+                    value={kitItem.name}
+                    onChange={(e) => updateKitItem(index, "name", e.target.value)}
                 />
-            }
-            {/* <TextInput
-                label='What should be done with the overage?'
-                value={kit.OverageAction}
-                onChange={(e) => updateKit(index, 'OverageAction', e.target.value)} /> */}
-            <QuantityControl
-                label="Qty per kit"
-                updateQtyCount={() => updateKitQtyCount(index)}
-                updateQtyVal={(qtyIndex, value) => updateKitQtyVal(index, qtyIndex, value)}
-                qtys={kit.quantities}
-                removeQty={(qtyIndex) =>
-                    removeKitQty(index, qtyIndex)
-                }
-            />
-            {isAutomatic && component &&
-                <ul className="mt-2 flex flex-col gap-1 text-sm">
-                    {completedUnits.map((units, i) => {
-                        const expected = expectedPerKit(component, completedUnits, i)
-                        if (expected == null) return null
+            )}
 
-                        const raw = kit.quantities?.[i]
-                        const hasEntered = raw !== "" && raw != null
-                        const diff = hasEntered ? Number(raw) - expected : 0
+            <div className="flex flex-col gap-1">
+                <NumberInput
+                    label="Qty per kit"
+                    value={kitItem.qtyPerKit}
+                    onChange={(e) => updateKitItem(index, "qtyPerKit", e.target.value)}
+                />
+                {suggestion && (
+                    <small className="text-xs text-gray-500">
+                        Auto-filled from {nf.format(suggestion.produced)} produced ÷{" "}
+                        {nf.format(suggestion.completed)} kits. Edit if the kit differs.
+                    </small>
+                )}
+            </div>
 
-                        return (
-                            <li key={i}>
-                                <span className="text-gray-600">
-                                    @ {units || '—'} completed units — expected {fmt(expected)} per kit
-                                    {' '}({component.Component || 'component'} qty {component.quantities?.[i] || 0} ÷ {units})
-                                </span>
-                                {hasEntered && diff !== 0 &&
-                                    <span className={`ml-2 font-semibold ${diff > 0 ? 'text-amber-700' : 'text-red-700'}`}>
-                                        {fmt(Math.abs(diff))} {diff > 0 ? 'more' : 'less'} than expected
+            {showReconciliation && (
+                <div className="rounded-md border border-blue-200 bg-white p-3 text-sm">
+                    <p className="mb-1 font-semibold text-gray-700">
+                        Per-kit demand vs. produced ({component.Component || "linked component"})
+                    </p>
+                    <ul className="flex flex-col gap-1">
+                        {levels.map(({ completedUnits, i }) => {
+                            const produced = Number(component.quantities?.[i]) || 0
+                            const kitted = perKit * completedUnits
+                            const diff = produced - kitted
+                            return (
+                                <li key={i} className="flex flex-wrap gap-x-2">
+                                    <span className="text-gray-600">
+                                        @ {nf.format(completedUnits)} kits:
                                     </span>
-                                }
-                            </li>
-                        )
-                    })}
-                </ul>
-            }
-            <Button label='Delete' onClick={() => removeKit(index)} />
+                                    <span>
+                                        {nf.format(kitted)} needed / {nf.format(produced)} produced
+                                    </span>
+                                    {diff === 0 ? (
+                                        <span className="font-medium text-green-700">matches</span>
+                                    ) : (
+                                        <span className="font-medium text-amber-700">
+                                            {nf.format(Math.abs(diff))}{" "}
+                                            {diff > 0 ? "more produced than kitted" : "short for kits"}
+                                        </span>
+                                    )}
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </div>
+            )}
+
+            {hasOverage && (
+                <TextInput
+                    label="What should be done with the overage?"
+                    value={kitItem.overageAction}
+                    onChange={(e) => updateKitItem(index, "overageAction", e.target.value)}
+                />
+            )}
+
+            <Button label="Delete" onClick={() => removeKitItem(index)} />
         </FormSection>
     )
 }

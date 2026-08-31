@@ -22,6 +22,7 @@ function ProjectViewer({ onEdit }) {
                 componentsResult,
                 componentQuantitiesResult,
                 componentFinishingResult,
+                kitBuildsResult,
                 kitsResult,
                 kitQuantitiesResult,
                 mailingResult,
@@ -76,7 +77,14 @@ function ProjectViewer({ onEdit }) {
                     .select("*"),
 
                 // =====================================================
-                // KITS
+                // KIT BUILDS
+                // =====================================================
+                supabase
+                    .from("Kit Builds")
+                    .select("*"),
+
+                // =====================================================
+                // KIT ITEMS
                 // =====================================================
                 supabase
                     .from("Kit Items")
@@ -132,6 +140,10 @@ function ProjectViewer({ onEdit }) {
                 throw componentFinishingResult.error
             }
 
+            if (kitBuildsResult.error) {
+                throw kitBuildsResult.error
+            }
+
             if (kitsResult.error) {
                 throw kitsResult.error
             }
@@ -165,6 +177,9 @@ function ProjectViewer({ onEdit }) {
 
             const componentFinishingData =
                 componentFinishingResult.data || []
+
+            const kitBuildsData =
+                kitBuildsResult.data || []
 
             const kitsData =
                 kitsResult.data || []
@@ -237,7 +252,7 @@ function ProjectViewer({ onEdit }) {
 
                             projectQuantities: [],
                             components: [],
-                            kits: [],
+                            kitItems: [],
                             mailing: null,
                             packs: [],
 
@@ -293,15 +308,20 @@ function ProjectViewer({ onEdit }) {
                             }))
 
                     // =================================================
-                    // KITS
+                    // KIT ITEMS  (via the version's Kit Build)
                     // =================================================
 
-                    const kits =
+                    const kitBuildIds = new Set(
+                        kitBuildsData
+                            .filter(build => build.version_id === versionId)
+                            .map(build => build.id)
+                    )
+
+                    const kitItems =
                         kitsData
                             .filter(
                                 kit =>
-                                    kit.version_id ===
-                                    versionId
+                                    kitBuildIds.has(kit.kit_build)
                             )
                             .map(kit => ({
                                 ...kit,
@@ -348,6 +368,9 @@ function ProjectViewer({ onEdit }) {
                         version_id:
                             latestVersion.id,
 
+                        additional_comments:
+                            latestVersion.additional_comments,
+
                         version_number:
                             latestVersion.version_number,
 
@@ -386,7 +409,7 @@ function ProjectViewer({ onEdit }) {
 
                         components,
 
-                        kits,
+                        kitItems,
 
                         mailing,
 
@@ -883,13 +906,13 @@ function ProjectViewer({ onEdit }) {
                                             <section>
 
                                                 <h3 className="mb-2 font-semibold">
-                                                    Kits
+                                                    Kit Items
                                                 </h3>
 
-                                                {project.kits.length === 0 ? (
+                                                {project.kitItems.length === 0 ? (
 
                                                     <p className="text-gray-500">
-                                                        No kits.
+                                                        No kit items.
                                                     </p>
 
                                                 ) : (
@@ -897,7 +920,7 @@ function ProjectViewer({ onEdit }) {
                                                     <table className="w-full border-collapse border border-gray-300">
 
                                                         <caption className="sr-only">
-                                                            Kits for{" "}
+                                                            Kit items for{" "}
                                                             {
                                                                 project.project_name
                                                             }
@@ -911,7 +934,7 @@ function ProjectViewer({ onEdit }) {
                                                                     scope="col"
                                                                     className="border border-gray-300 px-3 py-2 text-left"
                                                                 >
-                                                                    Kit
+                                                                    Item
                                                                 </th>
 
                                                                 <th
@@ -934,7 +957,7 @@ function ProjectViewer({ onEdit }) {
 
                                                         <tbody>
 
-                                                            {project.kits.map(
+                                                            {project.kitItems.map(
                                                                 kit => (
 
                                                                     <tr
@@ -945,7 +968,7 @@ function ProjectViewer({ onEdit }) {
 
                                                                         <td className="border border-gray-300 px-3 py-2">
                                                                             {
-                                                                                kit.kit_name
+                                                                                kit.item_name
                                                                             }
                                                                         </td>
 

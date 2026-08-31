@@ -5,7 +5,7 @@
 // submit, and the "what changed" diff all read this one shape instead of
 // juggling ~30 separate useState values.
 
-import { createEmptyComponent, createPackDistributionRow, kitFromComponent } from "./factories"
+import { createEmptyComponent, createEmptyKitItem, createPackDistributionRow, kitItemFromComponent } from "./factories"
 import { toQtyStrings } from "./quantities"
 import { parseServiceTypes } from "./serviceTypes"
 import { STEPS, visibleSteps } from "./steps"
@@ -21,6 +21,13 @@ const setQtyAt = (arr, index, value) => {
     next[index] = value
     return next
 }
+
+// After a completed-units level is removed, drop that level's pack rows and
+// slide the remaining rows' levelIndex down to match.
+const shiftPackLevelsAfterRemoval = (rows, removedIndex) =>
+    rows
+        .filter(row => row.levelIndex !== removedIndex)
+        .map(row => (row.levelIndex > removedIndex ? { ...row, levelIndex: row.levelIndex - 1 } : row))
 
 // Mark a step visited and make it current.
 function markVisited(wizard, step) {
@@ -67,17 +74,15 @@ export function initialFormState({ clientName = "", customerNumber = "" } = {}) 
             additionalComments: "",
         },
         qtysToQuote: [""],
-        // How many individual kits to build, one entry per completed-units
-        // quantity level (parallel to qtysToQuote). Persisted to
-        // "Project Versions".kits_count.
-        kitsCount: [""],
         services: {
             serviceTypes: [],
             isOtherType: false,
             otherServiceTypes: "",
         },
         components: [createEmptyComponent()],
-        kits: [],
+        // Everything that goes into the kit. One Kit Build per version owns
+        // these on save.
+        kitItems: [],
         mailing: {
             classOfMail: "",
             indicia: "",
@@ -89,12 +94,24 @@ export function initialFormState({ clientName = "", customerNumber = "" } = {}) 
             exactCompanyName: "",
             exactCompanyAddress: "",
         },
-        packDistribution: [createPackDistributionRow()],
+        // Pack rows, each tied to a completed-units level via `levelIndex`
+        // (an index into qtysToQuote).
+        packDistribution: [createPackDistributionRow(0)],
         wizard: {
             current: "overview",
             visited: { overview: true },
         },
     }
+}
+
+// Sort saved "Project Quantities" rows into the order the form shows levels in.
+function sortProjectQuantities(rows) {
+    return [...(rows || [])].sort((a, b) => {
+        const ao = a.sort_order ?? 0
+        const bo = b.sort_order ?? 0
+        if (ao !== bo) return ao - bo
+        return String(a.created_at || "").localeCompare(String(b.created_at || ""))
+    })
 }
 
 // A saved project (with its nested rows) -> a full form state tree.
@@ -107,6 +124,28 @@ export function mapProjectToFormState(project) {
         .filter(service => service?.source === "custom")
         .map(service => service.value)
 
+    const sortedProjectQuantities = sortProjectQuantities(project.projectQuantities)
+    const levelCount = sortedProjectQuantities.length
+    const levelIndexById = new Map(sortedProjectQuantities.map((pq, i) => [pq.id, i]))
+
+    // Component quantity rows now carry `project_quantity_id`; line them up with
+    // the level order. Fall back to positional order for pre-migration rows.
+    const componentQtyStrings = (rows) => {
+        if (!rows || rows.length === 0) {
+            return levelCount > 0 ? Array(levelCount).fill("") : [""]
+        }
+        const hasLevelRefs = rows.some(row => row.project_quantity_id != null)
+        if (hasLevelRefs && levelCount > 0) {
+            const out = Array(levelCount).fill("")
+            rows.forEach(row => {
+                const idx = levelIndexById.get(row.project_quantity_id)
+                if (idx != null) out[idx] = String(row.quantity)
+            })
+            return out
+        }
+        return toQtyStrings(rows)
+    }
+
     const loadedComponents = (project.components || []).map(component => ({
         id: crypto.randomUUID(),
         componentKey: component.component_key,
@@ -115,7 +154,7 @@ export function mapProjectToFormState(project) {
         FlatSize: component.flat_size || "",
         Stock: component.stock || "",
         Coating: component.coating || "",
-        quantities: toQtyStrings(component.quantities || []),
+        quantities: componentQtyStrings(component.quantities || []),
         saved: component.saved || false,
         finishingOps: (component.finishingOps || []).map(operation => ({
             id: operation.id,
@@ -126,33 +165,30 @@ export function mapProjectToFormState(project) {
         requiresFinishing: (component.finishingOps || []).length > 0,
     }))
 
-    // Loaded components get fresh in-memory ids, so remap each kit's saved
+    // Loaded components get fresh in-memory ids, so remap each kit item's saved
     // database component_id onto the matching new id (index-aligned with
-    // project.components) — otherwise the kit/component link breaks on re-save.
+    // project.components) — otherwise the item/component link breaks on re-save.
     const componentIdByDbId = new Map(
         (project.components || []).map((component, i) => [component.id, loadedComponents[i].id])
     )
 
-    const loadedKits = (project.kits || []).map(kit => ({
-        id: kit.id,
-        componentId: kit.component_id ? (componentIdByDbId.get(kit.component_id) || null) : null,
-        source: kit.source || "manual",
-        Kit: kit.kit_name || "",
-        quantities: toQtyStrings(kit.quantities || []),
-        OverageAction: kit.overage_action || "",
+    const loadedKitItems = (project.kitItems || []).map(item => ({
+        id: item.id,
+        componentId: item.component_id ? (componentIdByDbId.get(item.component_id) || null) : null,
+        source: item.source || "manual",
+        name: item.item_name || "",
+        qtyPerKit: item.quantities?.length ? String(item.quantities[0].quantity) : "",
+        overageAction: item.overage_action || "",
     }))
 
     const loadedPackDistribution = (project.packs || []).map(pack => ({
+        levelIndex: levelIndexById.get(pack.project_quantity_id) ?? 0,
         packType: pack.pack_type || "",
         qtyPerPack: pack.qty_per_pack != null ? String(pack.qty_per_pack) : "",
         numberOfPacks: pack.num_of_packs != null ? String(pack.num_of_packs) : "",
     }))
 
     const mailing = project.mailing || {}
-
-    const loadedKitsCount = Array.isArray(project.kits_count)
-        ? project.kits_count.map(count => (count == null ? "" : String(count)))
-        : []
 
     const loaded = {
         overview: {
@@ -167,15 +203,14 @@ export function mapProjectToFormState(project) {
             jobType: project.job_type || "",
             additionalComments: project.additional_comments || "",
         },
-        qtysToQuote: toQtyStrings(project.projectQuantities || []),
-        kitsCount: loadedKitsCount.length > 0 ? loadedKitsCount : [""],
+        qtysToQuote: levelCount > 0 ? sortedProjectQuantities.map(pq => String(pq.quantity)) : [""],
         services: {
             serviceTypes: checkedServices,
             isOtherType: customServices.length > 0,
             otherServiceTypes: customServices.join(", "),
         },
         components: loadedComponents.length > 0 ? loadedComponents : [createEmptyComponent()],
-        kits: loadedKits,
+        kitItems: loadedKitItems,
         mailing: {
             classOfMail: mailing.class_of_mail || "",
             indicia: mailing.indicia || "",
@@ -189,7 +224,7 @@ export function mapProjectToFormState(project) {
         },
         packDistribution: loadedPackDistribution.length > 0
             ? loadedPackDistribution
-            : [createPackDistributionRow()],
+            : [createPackDistributionRow(0)],
         wizard: { current: "overview", visited: {} },
     }
 
@@ -226,16 +261,9 @@ export function formReducer(state, action) {
             return syncSameQty({
                 ...state,
                 qtysToQuote: state.qtysToQuote.filter((_, i) => i !== action.index),
-                // Keep kit counts aligned with the completed-units levels.
-                kitsCount: state.kitsCount.filter((_, i) => i !== action.index),
+                // Pack rows are keyed to a level — drop/slide them to match.
+                packDistribution: shiftPackLevelsAfterRemoval(state.packDistribution, action.index),
             })
-
-        // --- Kit counts (one per completed-units level) ---
-        case "kitsCount/set":
-            return {
-                ...state,
-                kitsCount: setQtyAt(state.kitsCount, action.index, action.value),
-            }
 
         // --- Service types ---
         case "services/toggle": {
@@ -243,20 +271,21 @@ export function formReducer(state, action) {
                 ? [...state.services.serviceTypes, action.name]
                 : state.services.serviceTypes.filter(item => item !== action.name)
 
-            let kits = state.kits
+            let kitItems = state.kitItems
 
-            // Kitting just turned on: create kits for saved components missing one.
+            // Kitting just turned on: create a kit item for each saved component
+            // that doesn't already have one.
             if (action.name === "Kitting" && action.checked) {
                 const existingComponentIds = new Set(
-                    kits.filter(kit => kit.componentId).map(kit => kit.componentId)
+                    kitItems.filter(item => item.componentId).map(item => item.componentId)
                 )
-                const newKits = state.components
+                const newItems = state.components
                     .filter(component => component.saved && !existingComponentIds.has(component.id))
-                    .map(kitFromComponent)
-                kits = [...kits, ...newKits]
+                    .map(kitItemFromComponent)
+                kitItems = [...kitItems, ...newItems]
             }
 
-            const next = { ...state, services: { ...state.services, serviceTypes }, kits }
+            const next = { ...state, services: { ...state.services, serviceTypes }, kitItems }
             // Turning a service off can remove the step the user is standing on.
             return { ...next, wizard: clampWizard(next) }
         }
@@ -281,14 +310,14 @@ export function formReducer(state, action) {
                 return { ...state, components }
             }
 
-            const hasKit = state.kits.some(kit => kit.componentId === component.id)
-            const kits = hasKit
-                ? state.kits.map(kit =>
-                    kit.componentId === component.id ? { ...kit, Kit: component.Component } : kit
+            const hasItem = state.kitItems.some(item => item.componentId === component.id)
+            const kitItems = hasItem
+                ? state.kitItems.map(item =>
+                    item.componentId === component.id ? { ...item, name: component.Component } : item
                 )
-                : [...state.kits, kitFromComponent(component)]
+                : [...state.kitItems, kitItemFromComponent(component)]
 
-            return { ...state, components, kits }
+            return { ...state, components, kitItems }
         }
 
         case "components/setField":
@@ -381,56 +410,29 @@ export function formReducer(state, action) {
                 })),
             }
 
-        // --- Kitting ---
-        case "kits/add":
-            return {
-                ...state,
-                kits: [
-                    ...state.kits,
-                    { source: "manual", Kit: "", quantities: [""], OverageAction: "" },
-                ],
-            }
+        // --- Kit items ---
+        case "kitItems/add":
+            return { ...state, kitItems: [...state.kitItems, createEmptyKitItem()] }
 
-        case "kits/setField":
+        case "kitItems/setField":
             return {
                 ...state,
-                kits: replaceAt(state.kits, action.index, k => ({ ...k, [action.field]: action.value })),
-            }
-
-        case "kits/addQty":
-            return {
-                ...state,
-                kits: replaceAt(state.kits, action.index, k => ({ ...k, quantities: [...k.quantities, ""] })),
-            }
-
-        case "kits/setQty":
-            return {
-                ...state,
-                kits: replaceAt(state.kits, action.index, k => ({
-                    ...k,
-                    quantities: replaceAt(k.quantities, action.qtyIndex, () => action.value),
+                kitItems: replaceAt(state.kitItems, action.index, item => ({
+                    ...item,
+                    [action.field]: action.value,
                 })),
             }
 
-        case "kits/remove":
-            return { ...state, kits: state.kits.filter((_, i) => i !== action.index) }
-
-        case "kits/removeQty":
-            return {
-                ...state,
-                kits: replaceAt(state.kits, action.index, k => ({
-                    ...k,
-                    quantities: k.quantities.filter((_, j) => j !== action.qtyIndex),
-                })),
-            }
+        case "kitItems/remove":
+            return { ...state, kitItems: state.kitItems.filter((_, i) => i !== action.index) }
 
         // --- Mailing ---
         case "mailing/setField":
             return { ...state, mailing: { ...state.mailing, [action.field]: action.value } }
 
         // --- Packing ---
-        // Each row is one distribution: its pack type plus a qty-per-pack /
-        // number-of-packs split.
+        // Each row is one distribution for one completed-units level: its pack
+        // type plus a qty-per-pack / number-of-packs split.
         case "packing/setDistribution":
             return { ...state, packDistribution: action.rows }
 

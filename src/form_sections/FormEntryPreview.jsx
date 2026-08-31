@@ -19,10 +19,9 @@ const LABELS = {
     additionalComments: "Additional Comments",
     // top-level groups
     qtysToQuote: "Quantities to Quote",
-    kitsCount: "Kits per Quantity Level",
     serviceTypes: "Service Types",
     components: "Components",
-    kits: "Kits",
+    kitItems: "Kit Items",
     mailing: "Mailing",
     packDistribution: "Pack Distribution",
     // component fields
@@ -36,11 +35,17 @@ const LABELS = {
     saved: "Saved",
     finishingOps: "Finishing Ops",
     SameQty: "Same Qty",
-    // kit fields
-    Kit: "Kit",
-    OverageAction: "Overage Action",
+    // kit item fields
+    name: "Name",
+    qtyPerKit: "Qty per Kit",
+    overageAction: "Overage Action",
     source: "Source",
     componentId: "Component ID",
+    // pack fields
+    levelIndex: "Quote Level",
+    packType: "Pack Type",
+    qtyPerPack: "Qty per Pack",
+    numberOfPacks: "Number of Packs",
     // mailing fields
     classOfMail: "Class of Mail",
     indicia: "Indicia",

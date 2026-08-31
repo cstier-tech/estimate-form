@@ -5,14 +5,12 @@ import FormSection from "../components/FormSection"
 import Button from "../components/Button"
 import Textarea from "../components/Textarea"
 
-import QuantityControl from "../form_sections/QuantityControl"
 import ProjectOverview from "../form_sections/ProjectOverview"
-import ServiceType from "../form_sections/ServiceType"
 import JobComponents from "../form_sections/JobComponents"
 import Kitting from "../form_sections/Kitting"
 import Mailing from "../form_sections/Mailing"
 
-import { toQtyRows, toNumbers } from "./newestForm/quantities"
+import { toNumbers } from "./newestForm/quantities"
 import { parseServiceTypes } from "./newestForm/serviceTypes"
 import { fail, insertOne, insertMany } from "./newestForm/submitHelpers"
 import { formReducer, initialFormState } from "./newestForm/formReducer"
@@ -38,7 +36,7 @@ function NewestForm({
         initialFormState
     )
 
-    const { overview, qtysToQuote, kitsCount, services, components, kits, mailing, packDistribution } = state
+    const { overview, qtysToQuote, services, components, kitItems, mailing, packDistribution } = state
     const { serviceTypes, isOtherType, otherServiceTypes } = services
 
     // field name -> setter(value) that dispatches into a flat slice
@@ -61,9 +59,6 @@ function NewestForm({
     const updateQtyToQuoteVal = (index, value) => dispatch({ type: "qtysToQuote/set", index, value })
     const removeQtyToQuote = (index) => dispatch({ type: "qtysToQuote/remove", index })
 
-    // Kit counts — one per completed-units quantity level
-    const updateKitsCountVal = (index, value) => dispatch({ type: "kitsCount/set", index, value })
-
     // Service types
     const handleServiceTypes = (e) =>
         dispatch({ type: "services/toggle", name: e.target.name, checked: e.target.checked })
@@ -76,7 +71,7 @@ function NewestForm({
 
         if (component?.saved) {
             const confirmed = window.confirm(
-                "This component has already been saved. Saving your changes will also update its kit. Do you want to continue?"
+                "This component has already been saved. Saving your changes will also update its kit item. Do you want to continue?"
             )
             if (!confirmed) return
         }
@@ -109,18 +104,19 @@ function NewestForm({
     const updateComponentFinishingOpDetail = (index, opValue, fieldName, value) =>
         dispatch({ type: "components/setFinishingOpDetail", index, opValue, fieldName, value })
 
-    // Kitting
-    const addKit = () => dispatch({ type: "kits/add" })
-    const updateKit = (index, field, value) => dispatch({ type: "kits/setField", index, field, value })
-    const updateKitQtyCount = (index) => dispatch({ type: "kits/addQty", index })
-    const updateKitQtyVal = (index, qtyIndex, value) =>
-        dispatch({ type: "kits/setQty", index, qtyIndex, value })
-    const removeKit = (index) => dispatch({ type: "kits/remove", index })
-    const removeKitQty = (index, qtyIndex) => dispatch({ type: "kits/removeQty", index, qtyIndex })
+    // Kit items
+    const addKitItem = () => dispatch({ type: "kitItems/add" })
+    const updateKitItem = (index, field, value) => dispatch({ type: "kitItems/setField", index, field, value })
+    const removeKitItem = (index) => dispatch({ type: "kitItems/remove", index })
 
-    // Packing
-    const updatePackDistribution = (rows) =>
-        dispatch({ type: "packing/setDistribution", rows })
+    // Packing — each PackDistribution owns the rows for one completed-units level.
+    const updatePackDistributionForLevel = (levelIndex, levelRows) => {
+        const others = packDistribution.filter(row => row.levelIndex !== levelIndex)
+        dispatch({
+            type: "packing/setDistribution",
+            rows: [...others, ...levelRows].sort((a, b) => a.levelIndex - b.levelIndex),
+        })
+    }
 
     // Load existing project
     useEffect(() => {
@@ -185,14 +181,6 @@ function NewestForm({
 
         if (JSON.stringify(oldQuantities) !== JSON.stringify(newQuantities)) {
             changes.push(`Changed project quantities from [${oldQuantities.join(", ")}] to [${newQuantities.join(", ")}]`)
-        }
-
-        // Kit counts
-        const oldKitsCount = Array.isArray(projectToEdit.kits_count) ? projectToEdit.kits_count.map(Number) : []
-        const newKitsCount = toNumbers(kitsCount)
-
-        if (JSON.stringify(oldKitsCount) !== JSON.stringify(newKitsCount)) {
-            changes.push(`Changed kit counts from [${oldKitsCount.join(", ")}] to [${newKitsCount.join(", ")}]`)
         }
 
         // Components
@@ -306,7 +294,6 @@ function NewestForm({
                 previous_estimate_number: overview.prevEstNo,
                 job_type: overview.jobType,
                 service_types: finalServiceTypes,
-                kits_count: toNumbers(kitsCount),
                 additional_comments: overview.additionalComments,
                 what_changed: getWhatChanged()
             })
@@ -315,12 +302,26 @@ function NewestForm({
 
             const versionId = version.id
 
-            const { error: qtysError } = await insertMany(
-                "Project Quantities",
-                toQtyRows(qtysToQuote, "version_id", versionId)
-            )
+            // Quote levels: insert with their form order as sort_order, then keep
+            // the new row ids by level so every per-level child can point at them.
+            const quoteLevels = qtysToQuote
+                .map((qty, index) => ({ qty, index }))
+                .filter(({ qty }) => qty !== "" && qty !== null)
+
+            const { data: quantityRows, error: qtysError } = await supabase
+                .from("Project Quantities")
+                .insert(quoteLevels.map(({ qty, index }) => ({
+                    version_id: versionId,
+                    quantity: Number(qty),
+                    sort_order: index,
+                })))
+                .select()
 
             if (qtysError) return fail("saving project quantities", qtysError)
+
+            const quantityIdByLevel = new Map(
+                (quantityRows || []).map(row => [row.sort_order, row.id])
+            )
 
             // React component id -> new database component id
             const componentIdMap = new Map()
@@ -341,9 +342,20 @@ function NewestForm({
 
                 componentIdMap.set(component.id, componentRow.id)
 
+                const componentQtyRows = component.quantities
+                    .map((qty, index) => ({ qty, index }))
+                    .filter(({ qty, index }) =>
+                        qty !== "" && qty !== null && quantityIdByLevel.has(index)
+                    )
+                    .map(({ qty, index }) => ({
+                        component_id: componentRow.id,
+                        project_quantity_id: quantityIdByLevel.get(index),
+                        quantity: Number(qty),
+                    }))
+
                 const { error: componentQtysError } = await insertMany(
                     "Component Quantities",
-                    toQtyRows(component.quantities, "component_id", componentRow.id)
+                    componentQtyRows
                 )
 
                 if (componentQtysError) return fail(`saving quantities for component ${component.Component}`, componentQtysError)
@@ -362,36 +374,46 @@ function NewestForm({
                 }
             }
 
-            // Kits
-            for (const kit of kits) {
-                let databaseComponentId = null
-
-                if (kit.componentId) {
-                    databaseComponentId = componentIdMap.get(kit.componentId)
-
-                    if (!databaseComponentId) {
-                        console.error("Could not find database component ID for kit:", kit)
-                        alert(`Could not connect kit "${kit.Kit}" to its component.`)
-                        return
-                    }
-                }
-
-                const { data: kitRow, error: kitError } = await insertOne("Kit Items", {
+            // Kit build — one per version, owns every kit item.
+            if (kitItems.length > 0) {
+                const { data: kitBuild, error: kitBuildError } = await insertOne("Kit Builds", {
                     version_id: versionId,
-                    component_id: databaseComponentId,
-                    source: kit.source,
-                    kit_name: kit.Kit,
-                    overage_action: kit.OverageAction
                 })
 
-                if (kitError) return fail("saving kit", kitError)
+                if (kitBuildError) return fail("creating kit build", kitBuildError)
 
-                const { error: kitQtysError } = await insertMany(
-                    "Kit Quantities",
-                    toQtyRows(kit.quantities, "kit_id", kitRow.id)
-                )
+                for (const item of kitItems) {
+                    let databaseComponentId = null
 
-                if (kitQtysError) return fail(`saving quantities for kit ${kit.Kit}`, kitQtysError)
+                    if (item.componentId) {
+                        databaseComponentId = componentIdMap.get(item.componentId)
+
+                        if (!databaseComponentId) {
+                            console.error("Could not find database component ID for kit item:", item)
+                            alert(`Could not connect kit item "${item.name}" to its component.`)
+                            return
+                        }
+                    }
+
+                    const { data: kitItemRow, error: kitItemError } = await insertOne("Kit Items", {
+                        kit_build: kitBuild.id,
+                        component_id: databaseComponentId,
+                        source: item.source,
+                        item_name: item.name,
+                        overage_action: item.overageAction
+                    })
+
+                    if (kitItemError) return fail("saving kit item", kitItemError)
+
+                    if (item.qtyPerKit !== "" && item.qtyPerKit !== null) {
+                        const { error: kitQtyError } = await insertMany("Kit Quantities", [{
+                            kit_id: kitItemRow.id,
+                            quantity: Number(item.qtyPerKit),
+                        }])
+
+                        if (kitQtyError) return fail(`saving qty for kit item ${item.name}`, kitQtyError)
+                    }
+                }
             }
 
             // Mailing
@@ -412,7 +434,7 @@ function NewestForm({
                 if (mailingError) return fail("saving mailing information", mailingError)
             }
 
-            // Packs
+            // Packs — each row belongs to a completed-units level.
             const packRows = packDistribution
                 .filter(pack => pack.packType || pack.qtyPerPack || pack.numberOfPacks)
                 .map(pack => {
@@ -420,10 +442,10 @@ function NewestForm({
                     const numOfPacks = Number(pack.numberOfPacks) || 0
                     return {
                         version_id: versionId,
+                        project_quantity_id: quantityIdByLevel.get(pack.levelIndex) ?? null,
                         pack_type: pack.packType,
                         qty_per_pack: qtyPerPack,
-                        num_of_packs: numOfPacks,
-                        pack_total: qtyPerPack * numOfPacks
+                        num_of_packs: numOfPacks
                     }
                 })
 
@@ -450,10 +472,9 @@ function NewestForm({
     const formData = {
         ...overview,
         qtysToQuote,
-        kitsCount,
         serviceTypes: buildServiceTypes(),
         components,
-        kits,
+        kitItems,
         mailing,
         packDistribution
     }
@@ -499,30 +520,6 @@ function NewestForm({
                     </FormSection>
                 )
 
-            // case "quantities":
-            //     return (
-            //         <FormSection legend="Quantities to Quote">
-            //             <QuantityControl
-            //                 qtys={qtysToQuote}
-            //                 updateQtyCount={updateQtyToQuoteCount}
-            //                 updateQtyVal={updateQtyToQuoteVal}
-            //                 removeQty={removeQtyToQuote}
-            //             />
-            //         </FormSection>
-            //     )
-
-            // case "services":
-            //     return (
-            //         <ServiceType
-            //             serviceTypes={serviceTypes}
-            //             handleServiceTypes={handleServiceTypes}
-            //             isOtherType={isOtherType}
-            //             setIsOtherType={(value) => dispatch({ type: "services/setIsOtherType", value })}
-            //             otherServiceTypes={otherServiceTypes}
-            //             setOtherServiceTypes={(value) => dispatch({ type: "services/setOtherServiceTypes", value })}
-            //         />
-            //     )
-
             case "components":
                 return (
                     <FormSection legend="Components">
@@ -552,32 +549,25 @@ function NewestForm({
             case "kitting":
                 return (
                     <FormSection legend="Kit Build">
-                        <div className="mb-4 flex flex-col gap-2">
-                            <h5 className="font-semibold">How many individual kits per quantity level?</h5>
-                            <QuantityControl
-                                label={(qty) => `@ ${qty || '—'} completed units`}
-                                rows={qtysToQuote}
-                                qtys={kitsCount}
-                                updateQtyVal={updateKitsCountVal}
-                            />
-                        </div>
+                        <p className="text-sm text-gray-600">
+                            Everything below goes into one kit. Qty per kit is what each
+                            finished kit contains; the totals produced come from the
+                            Components step.
+                        </p>
 
-                        {kits.map((kit, index) => (
+                        {kitItems.map((item, index) => (
                             <Kitting
-                                key={kit.componentId || kit.id || index}
-                                kit={kit}
+                                key={item.id || index}
+                                kitItem={item}
                                 index={index}
-                                updateKit={updateKit}
-                                updateKitQtyCount={updateKitQtyCount}
-                                updateKitQtyVal={updateKitQtyVal}
-                                removeKit={removeKit}
-                                removeKitQty={removeKitQty}
-                                component={components.find(c => c.id === kit.componentId) || null}
-                                completedUnits={qtysToQuote}
+                                updateKitItem={updateKitItem}
+                                removeKitItem={removeKitItem}
+                                component={components.find(c => c.id === item.componentId) || null}
+                                totalQtys={qtysToQuote}
                             />
                         ))}
 
-                        <Button label="Add Kit" onClick={addKit} size="lgFull" />
+                        <Button label="Add Kit Item" onClick={addKitItem} size="lgFull" />
                     </FormSection>
                 )
 
@@ -605,16 +595,35 @@ function NewestForm({
                     />
                 )
 
-            case "packing":
+            case "packing": {
+                const quoteLevels = qtysToQuote
+                    .map((qty, index) => ({ qty, index }))
+                    .filter(({ qty }) => qty !== "" && qty !== null)
+
                 return (
                     <FormSection legend="Packing">
-                        <PackDistribution
-                            rows={packDistribution}
-                            onChange={updatePackDistribution}
-                            completedUnits={qtysToQuote}
-                        />
+                        {quoteLevels.length === 0 ? (
+                            <p className="text-sm text-gray-600">
+                                Add at least one completed-units quantity in Project Overview first.
+                            </p>
+                        ) : (
+                            quoteLevels.map(({ qty, index }) => (
+                                <div key={index} className="flex flex-col gap-2">
+                                    <h5 className="font-semibold">
+                                        Packing for {Number(qty).toLocaleString()} completed units
+                                    </h5>
+                                    <PackDistribution
+                                        levelIndex={index}
+                                        rows={packDistribution.filter(row => row.levelIndex === index)}
+                                        completedUnits={Number(qty) || 0}
+                                        onChange={(levelRows) => updatePackDistributionForLevel(index, levelRows)}
+                                    />
+                                </div>
+                            ))
+                        )}
                     </FormSection>
                 )
+            }
 
             case "review":
                 return (
@@ -645,9 +654,6 @@ function NewestForm({
 
     return (
         <div className="grid grid-cols-1 gap-4">
-            {/* <div className="col-span-2">
-                <FormEntryPreview user={user} data={formData} />
-            </div> */}
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
                 <div className="col-span-1 lg:col-span-2">
                     <div className="sticky top-5">
