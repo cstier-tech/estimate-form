@@ -1,34 +1,41 @@
-import { Wizard, useWizard } from "react-use-wizard"
+import {
+    useWizard
+} from "react-use-wizard"
 
+import {
+    FORM_STEPS
+} from "./formConfig"
 
 function Steppers() {
-    const {activeStep} = useWizard()
 
-    const steps = [
-        'RFE Overview',
-        'Components',
-        'Final'
-    ]
-  return (
+    const {
+        activeStep
+    } = useWizard()
 
-    <div>
-        {steps.map((step, index) => {
-            const stepNum = index;
+    return (
+        <div className="flex gap-2 mb-6">
 
-            const active = activeStep === stepNum;
-            const completed = activeStep > stepNum;
-            
-            if(active){
-                return <p className="text-blue-500">{step}</p> 
-            } else if (completed){
-                return <p className="text-green-500">{step}</p>
-            } else {
-                return <p className="text-gray-800">{step}</p>
-            }
-        })}
-    </div>
-    
-  )
+            {FORM_STEPS.map(
+                (step, index) => (
+
+                    <div
+                        key={step.id}
+                        className={
+                            index === activeStep
+                                ? "font-bold"
+                                : "text-gray-500"
+                        }
+                    >
+                        {index + 1}.
+                        {" "}
+                        {step.title}
+                    </div>
+
+                )
+            )}
+
+        </div>
+    )
 }
 
 export default Steppers

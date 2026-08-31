@@ -1,175 +1,214 @@
+import { useState } from "react"
+import {
+    Wizard
+} from "react-use-wizard"
 
-import { useEffect, useState } from 'react'
-import { Wizard } from 'react-use-wizard'
+import StepRenderer from "./StepRenderer"
+import { FORM_STEPS } from "./formConfig"
 
-import StepOne from './StepOne'
-import StepTwo from './StepTwo'
-import FinalStep from './FinalStep'
+import { supabase } from "../lib/supabaseClient"
 
-import { supabase } from '../lib/supabaseClient'
-import Button from '../components/Button'
+function Form({
+    selectedRFEId
+}) {
 
-
-const INITIAL_COMPONENT = () => ({
-    component_key: crypto.randomUUID(),
-    Component: '',
-    Source: '',
-    JobNo: '',
-    Size: '',
-    FlatSize: '',
-    Stock: '',
-    Coating: '',
-    quantities: [''],
-    SameQty: false,
-    saved: false,
-    requiresFinishing: false,
-    finishingOps: []
-})
-
-
-const INITIAL_FORM_DATA = {
-    rfe_name: '',
-    customer_name: '',
-    description: '',
-    customer_number: '',
-    due_date: '',
-    sales_rep: '',
-    job_type: '',
-    additional_comments: '',
-    previous_job_number: '',
-    quantities: [''],
-    components: [INITIAL_COMPONENT()]
-}
-
-
-function Form() {
-
-    // --------------------------------
-    // RFE LIST
-    // --------------------------------
-
-    const [rfes, setRFEs] = useState([])
-    const [selectedRFEId, setSelectedRFEId] = useState("")
-
-
-    // --------------------------------
+    // =========================================================
     // FORM DATA
-    // --------------------------------
+    // =========================================================
 
     const [formData, setFormData] = useState({
-        ...INITIAL_FORM_DATA,
-        components: [INITIAL_COMPONENT()]
+
+        // RFE Overview
+        rfe_name: "",
+        description: "",
+        customer_name: "",
+        customer_number: "",
+        due_date: "",
+        sales_rep: "",
+        job_type: "",
+        previous_job_number: "",
+        additional_comments: "",
+
+        // Quantities
+        quantities: [""],
+
+        // Versions
+        versions: [],
+
+        // Services
+        service_types: [],
+        other_service_types: "",
+
+        // Components
+        components: [
+            {
+                id: crypto.randomUUID(),
+                Component: "",
+                Size: "",
+                Stock: "",
+                Coating: "",
+                FlatSize: "",
+                quantities: [""],
+                saved: false,
+                finishingOps: []
+            }
+        ],
+
+        // Kitting
+        kits: [],
+
+        // Mailing
+        class_of_mail: "",
+        indicia: "",
+        payment_method: "",
+        permit_type: "",
+        nonprofit_auth: "",
+        mailing_from: "",
+        permit_owner: "",
+        exact_company_name: "",
+        exact_company_address: ""
     })
 
 
-    // --------------------------------
-    // LOAD RFE LIST
-    // --------------------------------
+    // =========================================================
+    // GENERIC FORM DATA UPDATE
+    // =========================================================
 
-    useEffect(() => {
-        getRFEs()
-    }, [])
-
-
-    const getRFEs = async () => {
-
-        const {
-            data: rfeData,
-            error: rfeError
-        } = await supabase
-            .from("RFEs")
-            .select("id")
-
-        if (rfeError) {
-            console.log("error loading RFEs:", rfeError)
-            return
-        }
-
-
-        const {
-            data: versionData,
-            error: versionError
-        } = await supabase
-            .from("RFE Versions")
-            .select("rfe_id, version_number, rfe_name")
-            .order("version_number", {
-                ascending: false
-            })
-
-        if (versionError) {
-            console.log("error loading RFE versions:", versionError)
-            return
-        }
-
-
-        const latestVersions = rfeData.map(rfe => {
-
-            const latestVersion = versionData.find(
-                version => version.rfe_id === rfe.id
-            )
-
-            return {
-                id: rfe.id,
-                rfe_name: latestVersion?.rfe_name || "Unnamed RFE"
-            }
-        })
-
-
-        setRFEs(latestVersions)
-    }
-
-
-    // --------------------------------
-    // UPDATE FORM DATA
-    // --------------------------------
-
-    const updateFormData = (field, value) => {
+    const updateFormData = (
+        name,
+        value
+    ) => {
 
         setFormData(prev => ({
             ...prev,
-            [field]: value
+            [name]: value
         }))
+
     }
 
 
-    // --------------------------------
-    // COMPONENT FUNCTIONS
-    // --------------------------------
+    // =========================================================
+    // QUANTITIES
+    // =========================================================
 
-    const updateComponent = (index, field, value) => {
+    const addQuantity = () => {
 
-        const components = [...formData.components]
+        setFormData(prev => ({
+            ...prev,
 
-        components[index] = {
-            ...components[index],
-            [field]: value
-        }
+            quantities: [
+                ...prev.quantities,
+                ""
+            ]
+        }))
 
-        updateFormData("components", components)
     }
 
+
+    const updateQuantity = (
+        index,
+        value
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            quantities:
+                prev.quantities.map(
+                    (qty, i) =>
+                        i === index
+                            ? value
+                            : qty
+                )
+        }))
+
+    }
+
+
+    const removeQuantity = (
+        index
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            quantities:
+                prev.quantities.filter(
+                    (_, i) =>
+                        i !== index
+                )
+        }))
+
+    }
+
+
+    // =========================================================
+    // COMPONENTS
+    // =========================================================
 
     const addComponent = () => {
 
-        updateFormData("components", [
-            ...formData.components,
-            INITIAL_COMPONENT()
-        ])
+        setFormData(prev => ({
+            ...prev,
+
+            components: [
+                ...prev.components,
+
+                {
+                    id: crypto.randomUUID(),
+                    Component: "",
+                    Size: "",
+                    Stock: "",
+                    Coating: "",
+                    FlatSize: "",
+                    quantities: [""],
+                    saved: false,
+                    finishingOps: []
+                }
+            ]
+        }))
+
     }
 
 
-    const removeComponent = (index) => {
+    const updateComponent = (
+        index,
+        field,
+        value
+    ) => {
 
-        const components = formData.components.filter(
-            (_, i) => i !== index
-        )
+        setFormData(prev => ({
+            ...prev,
 
-        updateFormData(
-            "components",
-            components.length > 0
-                ? components
-                : [INITIAL_COMPONENT()]
-        )
+            components:
+                prev.components.map(
+                    (component, i) =>
+                        i === index
+                            ? {
+                                ...component,
+                                [field]: value
+                            }
+                            : component
+                )
+        }))
+
+    }
+
+
+    const removeComponent = (
+        index
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            components:
+                prev.components.filter(
+                    (_, i) =>
+                        i !== index
+                )
+        }))
+
     }
 
 
@@ -179,20 +218,35 @@ function Form() {
         value
     ) => {
 
-        const components = [...formData.components]
+        setFormData(prev => ({
+            ...prev,
 
-        const quantities = [
-            ...components[componentIndex].quantities
-        ]
+            components:
+                prev.components.map(
+                    (component, i) => {
 
-        quantities[qtyIndex] = value
+                        if (
+                            i !== componentIndex
+                        ) {
+                            return component
+                        }
 
-        components[componentIndex] = {
-            ...components[componentIndex],
-            quantities
-        }
+                        return {
+                            ...component,
 
-        updateFormData("components", components)
+                            quantities:
+                                component.quantities.map(
+                                    (qty, j) =>
+                                        j === qtyIndex
+                                            ? value
+                                            : qty
+                                )
+                        }
+
+                    }
+                )
+        }))
+
     }
 
 
@@ -201,288 +255,653 @@ function Form() {
         qtyIndex
     ) => {
 
-        const components = [...formData.components]
+        setFormData(prev => ({
+            ...prev,
 
-        const quantities =
-            components[componentIndex].quantities.filter(
-                (_, i) => i !== qtyIndex
-            )
+            components:
+                prev.components.map(
+                    (component, i) => {
 
-        components[componentIndex] = {
-            ...components[componentIndex],
-            quantities:
-                quantities.length > 0
-                    ? quantities
-                    : [""]
-        }
+                        if (
+                            i !== componentIndex
+                        ) {
+                            return component
+                        }
 
-        updateFormData("components", components)
+                        return {
+                            ...component,
+
+                            quantities:
+                                component.quantities.filter(
+                                    (_, j) =>
+                                        j !== qtyIndex
+                                )
+                        }
+
+                    }
+                )
+        }))
+
     }
 
 
-    // --------------------------------
-    // SAME QUANTITY
-    // --------------------------------
+    // =========================================================
+    // SAVE COMPONENT
+    // =========================================================
 
-    const handleSameQty = (
-        componentIndex,
-        checked
-    ) => {
+    const saveComponent = index => {
 
-        const components = [...formData.components]
+        const component =
+            formData.components[index]
 
-        components[componentIndex] = {
-            ...components[componentIndex],
-            SameQty: checked,
-            quantities: checked
-                ? [...formData.quantities]
-                : components[componentIndex].quantities
+        if (!component) {
+            return
         }
 
-        updateFormData("components", components)
-    }
+        if (component.saved) {
 
-
-    // --------------------------------
-    // COMPONENT FINISHING
-    // --------------------------------
-
-    const handleRequiresFinishing = (
-        componentIndex,
-        checked
-    ) => {
-
-        const components = [...formData.components]
-
-        components[componentIndex] = {
-            ...components[componentIndex],
-            requiresFinishing: checked,
-            finishingOps: checked
-                ? components[componentIndex].finishingOps
-                : []
-        }
-
-        updateFormData("components", components)
-    }
-
-
-    const handleFinishingOps = (
-        componentIndex,
-        e
-    ) => {
-
-        const {
-            value,
-            checked
-        } = e.target
-
-        const components = [...formData.components]
-
-        const component = components[componentIndex]
-
-        let finishingOps = [
-            ...component.finishingOps
-        ]
-
-
-        if (checked) {
-
-            const alreadyExists =
-                finishingOps.some(
-                    op => op.operation === value
+            const confirmed =
+                window.confirm(
+                    "This component has already been saved. Saving your changes will also update its kit. Do you want to continue?"
                 )
 
-            if (!alreadyExists) {
+            if (!confirmed) {
+                return
+            }
 
-                finishingOps.push({
-                    operation: value,
-                    details: {}
-                })
+        }
+
+        setFormData(prev => {
+
+            const updatedComponents =
+                prev.components.map(
+                    (item, i) =>
+                        i === index
+                            ? {
+                                ...item,
+                                saved: true
+                            }
+                            : item
+                )
+
+            let updatedKits =
+                prev.kits
+
+            if (
+                prev.service_types.includes(
+                    "Kitting"
+                )
+            ) {
+
+                const existingKit =
+                    prev.kits.find(
+                        kit =>
+                            kit.componentId ===
+                            component.id
+                    )
+
+                if (!existingKit) {
+
+                    updatedKits = [
+                        ...prev.kits,
+
+                        {
+                            componentId:
+                                component.id,
+
+                            source:
+                                "component",
+
+                            Kit:
+                                component.Component,
+
+                            quantities:
+                                [
+                                    ...component.quantities
+                                ],
+
+                            OverageAction:
+                                ""
+                        }
+                    ]
+
+                } else {
+
+                    updatedKits =
+                        prev.kits.map(
+                            kit =>
+                                kit.componentId ===
+                                component.id
+                                    ? {
+                                        ...kit,
+                                        Kit:
+                                            component.Component
+                                    }
+                                    : kit
+                        )
+
+                }
 
             }
 
-        } else {
+            return {
+                ...prev,
 
-            finishingOps =
-                finishingOps.filter(
-                    op => op.operation !== value
-                )
+                components:
+                    updatedComponents,
 
-        }
+                kits:
+                    updatedKits
+            }
 
+        })
 
-        components[componentIndex] = {
-            ...component,
-            finishingOps
-        }
-
-        updateFormData(
-            "components",
-            components
-        )
     }
 
 
-    const updateFinishingOpDetail = (
+    // =========================================================
+    // COMPONENT FINISHING
+    // =========================================================
+
+    const handleComponentFinishingOps = (
         componentIndex,
-        operation,
+        event
+    ) => {
+
+        const {
+            name,
+            checked
+        } = event.target
+
+        setFormData(prev => ({
+            ...prev,
+
+            components:
+                prev.components.map(
+                    (component, i) => {
+
+                        if (
+                            i !== componentIndex
+                        ) {
+                            return component
+                        }
+
+                        if (checked) {
+
+                            return {
+                                ...component,
+
+                                finishingOps: [
+                                    ...component.finishingOps,
+
+                                    {
+                                        value: name,
+                                        details: {}
+                                    }
+                                ]
+                            }
+
+                        }
+
+                        return {
+                            ...component,
+
+                            finishingOps:
+                                component.finishingOps.filter(
+                                    op =>
+                                        op.value !==
+                                        name
+                                )
+                        }
+
+                    }
+                )
+        }))
+
+    }
+
+
+    const updateComponentFinishingOpDetail = (
+        componentIndex,
+        opValue,
         fieldName,
         value
     ) => {
 
-        const components = [...formData.components]
+        setFormData(prev => ({
+            ...prev,
 
-        const component =
-            components[componentIndex]
+            components:
+                prev.components.map(
+                    (component, i) => {
 
+                        if (
+                            i !== componentIndex
+                        ) {
+                            return component
+                        }
 
-        const finishingOps =
-            component.finishingOps.map(op => {
+                        return {
+                            ...component,
 
-                if (op.operation !== operation) {
-                    return op
-                }
+                            finishingOps:
+                                component.finishingOps.map(
+                                    op =>
+                                        op.value ===
+                                        opValue
+                                            ? {
+                                                ...op,
 
-                return {
-                    ...op,
-                    details: {
-                        ...op.details,
-                        [fieldName]: value
+                                                details: {
+                                                    ...op.details,
+                                                    [fieldName]:
+                                                        value
+                                                }
+                                            }
+                                            : op
+                                )
+                        }
+
                     }
-                }
+                )
+        }))
 
-            })
-
-
-        components[componentIndex] = {
-            ...component,
-            finishingOps
-        }
-
-
-        updateFormData(
-            "components",
-            components
-        )
     }
 
 
-    // --------------------------------
-    // QUANTITY FUNCTIONS
-    // --------------------------------
+    // =========================================================
+    // KITTING
+    // =========================================================
 
-    const updateQuantity = (
+    const addKit = () => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            kits: [
+                ...prev.kits,
+
+                {
+                    id: crypto.randomUUID(),
+                    source: "manual",
+                    Kit: "",
+                    quantities: [""],
+                    OverageAction: ""
+                }
+            ]
+        }))
+
+    }
+
+
+    const updateKit = (
         index,
+        field,
         value
     ) => {
 
-        setFormData(prev => {
-
-            const quantities =
-                [...prev.quantities]
-
-            quantities[index] = value
-
-            return {
-                ...prev,
-                quantities
-            }
-
-        })
-    }
-
-
-    const addQuantity = () => {
-
         setFormData(prev => ({
-
             ...prev,
 
-            quantities: [
-                ...prev.quantities,
-                ''
-            ]
-
+            kits:
+                prev.kits.map(
+                    (kit, i) =>
+                        i === index
+                            ? {
+                                ...kit,
+                                [field]: value
+                            }
+                            : kit
+                )
         }))
+
     }
 
 
-    const removeQuantity = (
+    const updateKitQtyCount = (
         index
     ) => {
 
+        setFormData(prev => ({
+            ...prev,
+
+            kits:
+                prev.kits.map(
+                    (kit, i) =>
+                        i === index
+                            ? {
+                                ...kit,
+
+                                quantities: [
+                                    ...kit.quantities,
+                                    ""
+                                ]
+                            }
+                            : kit
+                )
+        }))
+
+    }
+
+
+    const updateKitQtyVal = (
+        kitIndex,
+        qtyIndex,
+        value
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            kits:
+                prev.kits.map(
+                    (kit, i) =>
+                        i === kitIndex
+                            ? {
+                                ...kit,
+
+                                quantities:
+                                    kit.quantities.map(
+                                        (qty, j) =>
+                                            j === qtyIndex
+                                                ? value
+                                                : qty
+                                    )
+                            }
+                            : kit
+                )
+        }))
+
+    }
+
+
+    const removeKit = index => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            kits:
+                prev.kits.filter(
+                    (_, i) =>
+                        i !== index
+                )
+        }))
+
+    }
+
+
+    const removeKitQty = (
+        kitIndex,
+        qtyIndex
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            kits:
+                prev.kits.map(
+                    (kit, i) =>
+                        i === kitIndex
+                            ? {
+                                ...kit,
+
+                                quantities:
+                                    kit.quantities.filter(
+                                        (_, j) =>
+                                            j !== qtyIndex
+                                    )
+                            }
+                            : kit
+                )
+        }))
+
+    }
+
+
+    // =========================================================
+    // SERVICE TYPES
+    // =========================================================
+
+    const handleServiceTypes = event => {
+
+        const {
+            checked,
+            name
+        } = event.target
+
         setFormData(prev => {
 
-            const quantities =
-                prev.quantities.filter(
-                    (_, i) => i !== index
-                )
+            const serviceTypes =
+                checked
+                    ? [
+                        ...prev.service_types,
+                        name
+                    ]
+                    : prev.service_types.filter(
+                        item =>
+                            item !== name
+                    )
 
-            return {
+            let kits =
+                prev.kits
 
-                ...prev,
+            if (
+                name === "Kitting" &&
+                checked
+            ) {
 
-                quantities:
-                    quantities.length > 0
-                        ? quantities
-                        : ['']
+                const existingIds =
+                    new Set(
+                        kits
+                            .map(
+                                kit =>
+                                    kit.componentId
+                            )
+                            .filter(Boolean)
+                    )
+
+                const newKits =
+                    prev.components
+                        .filter(
+                            component =>
+                                component.saved &&
+                                !existingIds.has(
+                                    component.id
+                                )
+                        )
+                        .map(
+                            component => ({
+                                componentId:
+                                    component.id,
+
+                                source:
+                                    "component",
+
+                                Kit:
+                                    component.Component,
+
+                                quantities:
+                                    [
+                                        ...component.quantities
+                                    ],
+
+                                OverageAction:
+                                    ""
+                            })
+                        )
+
+                kits = [
+                    ...kits,
+                    ...newKits
+                ]
 
             }
 
+            return {
+                ...prev,
+
+                service_types:
+                    serviceTypes,
+
+                kits
+            }
+
         })
+
     }
 
 
-    // --------------------------------
-    // LOAD SELECTED RFE
-    // --------------------------------
+    // =========================================================
+    // SUBMIT
+    // =========================================================
 
-    const handleRFEChange = (
-        e
-    ) => {
+    const handleSubmit = async () => {
 
-        const id = e.target.value
+        // Build the final service type data
+        const finalServiceTypes = [
+            ...formData.service_types.map(
+                type => ({
+                    source: "check",
+                    value: type
+                })
+            ),
 
-        setSelectedRFEId(id)
+            ...formData.other_service_types
+                .split(",")
+                .map(item => ({
+                    source: "custom",
+                    value: item.trim()
+                }))
+                .filter(
+                    item =>
+                        item.value
+                )
+        ]
 
-        if (id) {
 
-            loadRFE(id)
+        // =====================================================
+        // 1. CREATE OR GET RFE
+        // =====================================================
 
-        } else {
+        let RFEId =
+            selectedRFEId
 
-            resetForm()
+        if (!RFEId) {
 
+            const {
+                data: rfe,
+                error
+            } = await supabase
+                .from("RFEs")
+                .insert({})
+                .select()
+                .single()
+
+            if (error) {
+
+                console.error(
+                    "error creating RFE:",
+                    error
+                )
+
+                return
+            }
+
+            RFEId =
+                rfe.id
         }
-    }
 
 
-    // --------------------------------
-    // LOAD RFE DATA
-    // --------------------------------
+        // =====================================================
+        // 2. GET EXISTING VERSIONS
+        // =====================================================
 
-    const loadRFE = async (
-        id
-    ) => {
+        const {
+            data: versions,
+            error: versionsError
+        } = await supabase
+            .from("RFE Versions")
+            .select("version_number")
+            .eq("rfe_id", RFEId)
+
+        if (versionsError) {
+
+            console.error(
+                "error loading versions:",
+                versionsError
+            )
+
+            return
+        }
+
+
+        // =====================================================
+        // 3. NEXT VERSION
+        // =====================================================
+
+        const nextVersionNumber =
+            versions.length > 0
+                ? Math.max(
+                    ...versions.map(
+                        v =>
+                            v.version_number
+                    )
+                ) + 1
+                : 1
+
+
+        // =====================================================
+        // 4. CREATE VERSION
+        // =====================================================
 
         const {
             data: version,
             error: versionError
         } = await supabase
             .from("RFE Versions")
-            .select("*")
-            .eq("rfe_id", id)
-            .order("version_number", {
-                ascending: false
-            })
-            .limit(1)
-            .single()
+            .insert({
 
+                rfe_id:
+                    RFEId,
+
+                version_number:
+                    nextVersionNumber,
+
+                rfe_name:
+                    formData.rfe_name,
+
+                customer_name:
+                    formData.customer_name,
+
+                description:
+                    formData.description,
+
+                customer_number:
+                    formData.customer_number,
+
+                due_date:
+                    formData.due_date,
+
+                sales_rep:
+                    formData.sales_rep,
+
+                job_type:
+                    formData.job_type,
+
+                additional_comments:
+                    formData.additional_comments,
+
+                previous_job_number:
+                    formData.previous_job_number
+
+            })
+            .select()
+            .single()
 
         if (versionError) {
 
-            console.log(
-                "error loading RFE Version:",
+            console.error(
+                "error saving RFE version:",
                 versionError
             )
 
@@ -490,156 +909,377 @@ function Form() {
         }
 
 
-        const {
-            data: quantities,
-            error: quantityError
-        } = await supabase
-            .from("RFE Quantities")
-            .select(
-                "quantity, sort_order"
-            )
-            .eq("version_id", version.id)
-            .order("sort_order", {
-                ascending: true
-            })
+        // =====================================================
+        // 5. SAVE QUANTITIES
+        // =====================================================
 
+        const quantityRows =
+            formData.quantities
 
-        if (quantityError) {
+                .filter(
+                    qty =>
+                        String(qty).trim() !== ""
+                )
 
-            console.log(
-                "error loading RFE quantities:",
-                quantityError
-            )
+                .map(
+                    (qty, index) => ({
+                        quantity:
+                            Number(qty),
 
-            return
+                        version_id:
+                            version.id,
+
+                        sort_order:
+                            index
+                    })
+                )
+
+        let savedQuantities = []
+
+        if (
+            quantityRows.length > 0
+        ) {
+
+            const {
+                data: quantities,
+                error
+            } = await supabase
+                .from("RFE Quantities")
+                .insert(quantityRows)
+                .select()
+
+            if (error) {
+
+                console.error(
+                    "error saving quantities:",
+                    error
+                )
+
+                return
+            }
+
+            savedQuantities =
+                quantities
         }
 
 
-        const loadedQuantities =
-            quantities.length > 0
+        // =====================================================
+        // 6. SAVE COMPONENTS
+        // =====================================================
 
-                ? quantities.map(
-                    row => String(row.quantity)
+        const componentRows =
+            formData.components
+
+                .filter(
+                    component =>
+                        String(
+                            component.Component ||
+                            ""
+                        ).trim() !== ""
                 )
 
-                : ['']
+                .map(
+                    component => ({
+                        component_name:
+                            component.Component,
+
+                        size:
+                            component.Size,
+
+                        stock:
+                            component.Stock,
+
+                        coating:
+                            component.Coating,
+
+                        saved:
+                            component.saved,
+
+                        flat_size:
+                            component.FlatSize,
+
+                        version_id:
+                            version.id,
+
+                        component_key:
+                            component.id
+                    })
+                )
+
+        let savedComponents = []
+
+        if (
+            componentRows.length > 0
+        ) {
+
+            const {
+                data: components,
+                error
+            } = await supabase
+                .from("Components")
+                .insert(componentRows)
+                .select()
+
+            if (error) {
+
+                console.error(
+                    "error saving components:",
+                    error
+                )
+
+                return
+            }
+
+            savedComponents =
+                components
+        }
 
 
-        setFormData({
+        // =====================================================
+        // 7. COMPONENT QUANTITIES
+        // =====================================================
 
-            rfe_name:
-                version.rfe_name || '',
+        const componentQuantityRows = []
 
-            customer_name:
-                version.customer_name || '',
+        formData.components.forEach(
+            (
+                formComponent,
+                componentIndex
+            ) => {
 
-            description:
-                version.description || '',
+                const savedComponent =
+                    savedComponents[
+                        componentIndex
+                    ]
 
-            customer_number:
-                version.customer_number || '',
+                if (!savedComponent) {
+                    return
+                }
 
-            due_date:
-                version.due_date || '',
+                formComponent.quantities
 
-            sales_rep:
-                version.sales_rep || '',
+                    .filter(
+                        qty =>
+                            String(qty).trim() !== ""
+                    )
 
-            job_type:
-                version.job_type || '',
+                    .forEach(
+                        (
+                            qty,
+                            quantityIndex
+                        ) => {
 
-            additional_comments:
-                version.additional_comments || '',
+                            const rfeQuantity =
+                                savedQuantities[
+                                    quantityIndex
+                                ]
 
-            previous_job_number:
-                version.previous_job_number || '',
+                            if (!rfeQuantity) {
+                                return
+                            }
 
-            quantities:
-                loadedQuantities,
+                            componentQuantityRows.push({
 
-            components:
-                [INITIAL_COMPONENT()]
+                                component_id:
+                                    savedComponent.id,
 
-        })
+                                quantity:
+                                    Number(qty),
+
+                                rfe_quantity_id:
+                                    rfeQuantity.id
+
+                            })
+
+                        }
+                    )
+
+            }
+        )
+
+
+        if (
+            componentQuantityRows.length > 0
+        ) {
+
+            const {
+                error
+            } = await supabase
+                .from("Component Quantities")
+                .insert(
+                    componentQuantityRows
+                )
+
+            if (error) {
+
+                console.error(
+                    "error saving component quantities:",
+                    error
+                )
+
+                return
+            }
+
+        }
+
+
+        // =====================================================
+        // 8. FINISHING
+        // =====================================================
+
+        const finishingRows = []
+
+        formData.components.forEach(
+            (
+                formComponent,
+                componentIndex
+            ) => {
+
+                const savedComponent =
+                    savedComponents[
+                        componentIndex
+                    ]
+
+                if (!savedComponent) {
+                    return
+                }
+
+                if (
+                    !formComponent.finishingOps
+                ) {
+                    return
+                }
+
+                formComponent.finishingOps.forEach(
+                    operation => {
+
+                        finishingRows.push({
+
+                            operation:
+                                operation.value,
+
+                            details:
+                                operation.details ||
+                                {},
+
+                            component_id:
+                                savedComponent.id
+
+                        })
+
+                    }
+                )
+
+            }
+        )
+
+
+        if (
+            finishingRows.length > 0
+        ) {
+
+            const {
+                error
+            } = await supabase
+                .from("Component Finishing")
+                .insert(finishingRows)
+
+            if (error) {
+
+                console.error(
+                    "error saving component finishing:",
+                    error
+                )
+
+                return
+            }
+
+        }
+
+
+        // =====================================================
+        // 9. SUCCESS
+        // =====================================================
+
+        console.log(
+            "created RFE:",
+            RFEId
+        )
+
+        console.log(
+            "created version:",
+            version
+        )
+
+        console.log(
+            "saved quantities:",
+            savedQuantities
+        )
+
+        console.log(
+            "saved components:",
+            savedComponents
+        )
+
+        console.log(
+            "saved component quantities:",
+            componentQuantityRows
+        )
+
+        console.log(
+            "saved finishing:",
+            finishingRows
+        )
+
+        alert(
+            "RFE saved successfully!"
+        )
+
     }
 
 
-    // --------------------------------
-    // RESET FORM
-    // --------------------------------
-
-    const resetForm = () => {
-
-        setSelectedRFEId("")
-
-        setFormData({
-            ...INITIAL_FORM_DATA,
-            components: [INITIAL_COMPONENT()]
-        })
-    }
-
-
-    // --------------------------------
+    // =========================================================
     // RENDER
-    // --------------------------------
+    // =========================================================
 
     return (
 
-        <div style={{ padding: '20px' }}>
+        <Wizard>
 
-            <select
-                className="border"
-                value={selectedRFEId}
-                onChange={handleRFEChange}
-            >
+            {FORM_STEPS.map(step => (
 
-                <option value="">
-                    Select an RFE to edit
-                </option>
+                <StepRenderer
+                    key={step.id}
+                    step={step}
 
-                {rfes.map(rfe => (
-
-                    <option
-                        key={rfe.id}
-                        value={rfe.id}
-                    >
-                        {rfe.rfe_name}
-                    </option>
-
-                ))}
-
-            </select>
-
-
-            <Button
-                label="New RFE"
-                onClick={resetForm}
-            />
-
-
-            <h2>
-                Registration Wizard
-            </h2>
-
-
-            <Wizard>
-
-                <StepOne
                     formData={formData}
-                    updateFormData={updateFormData}
-                    updateQuantity={updateQuantity}
-                    addQuantity={addQuantity}
-                    removeQuantity={removeQuantity}
-                />
+                    updateFormData={
+                        updateFormData
+                    }
 
+                    updateQuantity={
+                        updateQuantity
+                    }
 
-                <StepTwo
-                    formData={formData}
-                    updateFormData={updateFormData}
+                    addQuantity={
+                        addQuantity
+                    }
 
-                    updateComponent={updateComponent}
-                    addComponent={addComponent}
-                    removeComponent={removeComponent}
+                    removeQuantity={
+                        removeQuantity
+                    }
+
+                    updateComponent={
+                        updateComponent
+                    }
+
+                    addComponent={
+                        addComponent
+                    }
+
+                    removeComponent={
+                        removeComponent
+                    }
 
                     updateComponentQtyVal={
                         updateComponentQtyVal
@@ -649,35 +1289,52 @@ function Form() {
                         removeComponentQty
                     }
 
-                    handleSameQty={
-                        handleSameQty
+                    saveComponent={
+                        saveComponent
                     }
 
-                    handleRequiresFinishing={
-                        handleRequiresFinishing
+                    handleComponentFinishingOps={
+                        handleComponentFinishingOps
                     }
 
-                    handleFinishingOps={
-                        handleFinishingOps
+                    updateComponentFinishingOpDetail={
+                        updateComponentFinishingOpDetail
                     }
 
-                    updateFinishingOpDetail={
-                        updateFinishingOpDetail
+                    updateKit={
+                        updateKit
+                    }
+
+                    addKit={
+                        addKit
+                    }
+
+                    removeKit={
+                        removeKit
+                    }
+
+                    updateKitQtyCount={
+                        updateKitQtyCount
+                    }
+
+                    updateKitQtyVal={
+                        updateKitQtyVal
+                    }
+
+                    removeKitQty={
+                        removeKitQty
+                    }
+
+                    onSubmit={
+                        handleSubmit
                     }
                 />
 
+            ))}
 
-                <FinalStep
-                    formData={formData}
-                    selectedRFEId={selectedRFEId}
-                />
+        </Wizard>
 
-            </Wizard>
-
-        </div>
     )
 }
 
-
 export default Form
-
