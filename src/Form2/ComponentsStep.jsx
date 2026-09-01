@@ -39,47 +39,18 @@ function ComponentsStep({
 
                     <JobComponents
                         key={component.id}
-                        totalQtys={
-                            formData.quantities
-                        }
+                        totalQtys={formData.quantities}
                         component={component}
                         index={index}
-
-                        updateComponent={
-                            updateComponent
-                        }
-
-                        updateComponentQtyVal={
-                            updateComponentQtyVal
-                        }
-
-                        removeComponentQty={
-                            removeComponentQty
-                        }
-
-                        removeComponent={
-                            removeComponent
-                        }
-
-                        saveComponent={
-                            saveComponent
-                        }
-
-                        handleFinishingOps={
-                            handleComponentFinishingOps
-                        }
-
-                        updateFinishingOpDetail={
-                            updateComponentFinishingOpDetail
-                        }
-
-                        handleSameQty={
-                            handleComponentSameQty
-                        }
-
-                        handleRequiresFinishing={
-                            handleComponentRequiresFinishing
-                        }
+                        updateComponent={updateComponent}
+                        updateComponentQtyVal={updateComponentQtyVal}
+                        removeComponentQty={removeComponentQty}
+                        removeComponent={removeComponent}
+                        saveComponent={saveComponent}
+                        handleFinishingOps={handleComponentFinishingOps}
+                        updateFinishingOpDetail={updateComponentFinishingOpDetail}
+                        handleSameQty={handleComponentSameQty}
+                        handleRequiresFinishing={handleComponentRequiresFinishing}
                     />
 
                 )

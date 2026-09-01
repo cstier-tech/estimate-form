@@ -7,6 +7,9 @@ import TextInput from "../components/TextInput"
 import Textarea from "../components/Textarea"
 import SelectInput from "../components/SelectInput"
 import Button from "../components/Button"
+import DateInput from '../components/DateInput'
+import NumberInput from '../components/NumberInput'
+import CheckboxInput from '../components/CheckboxInput'
 
 import QuantityControl from "../form_sections/QuantityControl"
 
@@ -57,6 +60,14 @@ function FieldsStep({
     }
 
     const handleChange = (field, event) => {
+        if (field.type === 'checkbox'){
+            let checked = event.target.checked
+            updateFormData(
+                field.name,
+                checked
+            )
+            return
+        } 
 
         let value = event.target.value
 
@@ -90,7 +101,36 @@ function FieldsStep({
                             <TextInput
                                 label={field.label}
                                 value={value}
+                                formText={field.formText}
                                 onChange={event =>
+                                    handleChange(
+                                        field,
+                                        event
+                                    )
+                                }
+                            />
+                        )}
+
+                        {field.type === "number" && (
+                            <NumberInput
+                                label={field.label}
+                                name={field.name}
+                                value={value}
+                                onChange={event =>
+                                    handleChange(
+                                        field,
+                                        event
+                                    )
+                                }
+                            />
+                        )}
+                        
+                        {field.type === "checkbox" && (
+                            <CheckboxInput
+                                label={field.label}
+                                name={field.name}
+                                checked={!!value}
+                                onChange={event => 
                                     handleChange(
                                         field,
                                         event
@@ -113,9 +153,9 @@ function FieldsStep({
                         )}
 
                         {field.type === "date" && (
-                            <TextInput
-                                type="date"
+                            <DateInput
                                 label={field.label}
+                                name={field.name}
                                 value={value}
                                 onChange={event =>
                                     handleChange(

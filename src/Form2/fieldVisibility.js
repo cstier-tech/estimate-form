@@ -11,7 +11,8 @@ export function shouldShow(field, formData) {
 
     return (
         formData[field.showwhen.field] ===
-        field.showwhen.value
+        field.showwhen.value || formData[field.showwhen.field] ===
+        field.showwhen.checked
     )
 }
 

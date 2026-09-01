@@ -5,12 +5,11 @@ import {
 import {
     FORM_STEPS
 } from "./formConfig"
+import Button from "../components/Button"
 
 function Steppers() {
 
-    const {
-        activeStep
-    } = useWizard()
+    const {activeStep, goToStep} = useWizard()
 
     return (
         <div className="flex gap-2 mb-6">
@@ -26,9 +25,16 @@ function Steppers() {
                                 : "text-gray-500"
                         }
                     >
-                        {index + 1}.
+                        {/* {index + 1}.
                         {" "}
-                        {step.title}
+                        {step.title} */}
+                        <Button
+                            // key={step.id}
+                            label={(index + 1).toString() + ". " + step.title}
+                            onClick={() => goToStep(index)}
+                            size='sm'
+                            variant={index === activeStep ? 'info' : 'primary'}
+                        />
                     </div>
 
                 )

@@ -2,6 +2,7 @@ import FieldsStep from "./FieldsStep"
 import ComponentsStep from "./ComponentsStep"
 import KittingStep from "./KittingStep"
 import ReviewStep from "./ReviewStep"
+import PackingStep from "./PackingStep"
 
 function StepRenderer({
     step,
@@ -33,6 +34,9 @@ function StepRenderer({
     removeKitItem,
     buildKitsFromComponents,
 
+    addPackDistribution,
+    updatePackDistribution,
+
     onSubmit,
     submitting,
     submitResult
@@ -46,21 +50,10 @@ function StepRenderer({
                 <FieldsStep
                     step={step}
                     formData={formData}
-                    updateFormData={
-                        updateFormData
-                    }
-
-                    updateQuantity={
-                        updateQuantity
-                    }
-
-                    addQuantity={
-                        addQuantity
-                    }
-
-                    removeQuantity={
-                        removeQuantity
-                    }
+                    updateFormData={updateFormData}
+                    updateQuantity={updateQuantity}
+                    addQuantity={addQuantity}
+                    removeQuantity={removeQuantity}
                 />
             )
 
@@ -69,46 +62,16 @@ function StepRenderer({
             return (
                 <ComponentsStep
                     formData={formData}
-
-                    updateComponent={
-                        updateComponent
-                    }
-
-                    addComponent={
-                        addComponent
-                    }
-
-                    removeComponent={
-                        removeComponent
-                    }
-
-                    updateComponentQtyVal={
-                        updateComponentQtyVal
-                    }
-
-                    removeComponentQty={
-                        removeComponentQty
-                    }
-
-                    saveComponent={
-                        saveComponent
-                    }
-
-                    handleComponentFinishingOps={
-                        handleComponentFinishingOps
-                    }
-
-                    updateComponentFinishingOpDetail={
-                        updateComponentFinishingOpDetail
-                    }
-
-                    handleComponentSameQty={
-                        handleComponentSameQty
-                    }
-
-                    handleComponentRequiresFinishing={
-                        handleComponentRequiresFinishing
-                    }
+                    updateComponent={updateComponent}
+                    addComponent={addComponent}
+                    removeComponent={removeComponent}
+                    updateComponentQtyVal={updateComponentQtyVal}
+                    removeComponentQty={removeComponentQty}
+                    saveComponent={saveComponent}
+                    handleComponentFinishingOps={handleComponentFinishingOps}
+                    updateComponentFinishingOpDetail={updateComponentFinishingOpDetail}
+                    handleComponentSameQty={handleComponentSameQty}
+                    handleComponentRequiresFinishing={handleComponentRequiresFinishing}
                 />
             )
 
@@ -117,22 +80,20 @@ function StepRenderer({
             return (
                 <KittingStep
                     formData={formData}
+                    updateKitItem={updateKitItem}
+                    addKitItem={addKitItem}
+                    removeKitItem={removeKitItem}
+                    buildKitsFromComponents={buildKitsFromComponents}
+                />
+            )
 
-                    updateKitItem={
-                        updateKitItem
-                    }
+        case "pack_distribution":
 
-                    addKitItem={
-                        addKitItem
-                    }
-
-                    removeKitItem={
-                        removeKitItem
-                    }
-
-                    buildKitsFromComponents={
-                        buildKitsFromComponents
-                    }
+            return (
+                <PackingStep
+                    formData={formData}
+                    addPackDistribution={addPackDistribution}
+                    updatePackDistribution={updatePackDistribution}
                 />
             )
 

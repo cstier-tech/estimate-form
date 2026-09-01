@@ -25,6 +25,8 @@ export function makeBlankComponent() {
 }
 
 
+import { createPackDistributionRow } from "../pages/newestForm/factories"
+
 export function buildInitialFormData(config) {
 
     const initial = {}
@@ -48,6 +50,8 @@ export function buildInitialFormData(config) {
         quantities: [""],
 
         components: [makeBlankComponent()],
+
+        packDistribution: [[createPackDistributionRow(0)]],
 
         // Kit items. The kit count per quote level is the RFE `quantities`
         // above; each item keeps a single scalar qty-per-kit.

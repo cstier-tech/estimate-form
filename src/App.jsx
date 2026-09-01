@@ -10,10 +10,12 @@ function App() {
 
     // { rfeId, formData } when editing a past RFE, else null
     const [editing, setEditing] = useState(null)
+    const [formResetToken, setFormResetToken] = useState(0)
 
     function showNewForm() {
         setEditing(null)
         setView("form")
+        setFormResetToken(token => token + 1)
     }
 
     function showList() {
@@ -31,6 +33,7 @@ function App() {
 
             <Header
                 onNewRfe={showNewForm}
+                onClearForm={showNewForm}
                 onViewRfes={showList}
                 onOutline={showList}
             />
@@ -39,7 +42,7 @@ function App() {
                 <RfeListPage onEdit={editRfe} />
             ) : (
                 <Form
-                    key={editing?.rfeId || "new"}
+                    key={editing ? `edit-${editing.rfeId}` : `new-${formResetToken}`}
                     selectedRFEId={editing?.rfeId || null}
                     initialData={editing?.formData || null}
                 />

@@ -6,6 +6,7 @@ import {
 import StepRenderer from "./StepRenderer"
 import { FORM_STEPS, FORM_CONFIG } from "./formConfig"
 import { buildInitialFormData, makeBlankComponent } from "./formState"
+import { createPackDistributionRow } from "../pages/newestForm/factories"
 import { submitForm } from "./submitForm"
 
 function Form({
@@ -742,6 +743,36 @@ function Form({
 
     }
 
+    // =========================================================
+    // PACK DISTRIBUTION
+    // =========================================================
+
+    const addPackDistribution = () => {
+        setFormData(prev => {
+            const currentLevels = prev.packDistribution || []
+            const nextLevelIndex = currentLevels.length
+
+            return {
+                ...prev,
+                packDistribution: [
+                    ...currentLevels,
+                    [createPackDistributionRow(nextLevelIndex)]
+                ]
+            }
+        })
+    }
+
+    const updatePackDistribution = (rows, levelIndex) => {
+        setFormData(prev => {
+            const updatedPackDistribution = [...(prev.packDistribution || [])]
+            updatedPackDistribution[levelIndex] = rows
+            return {
+                ...prev,
+                packDistribution: updatedPackDistribution
+            }
+        })
+    }
+
 
     // =========================================================
     // SUBMIT
@@ -772,7 +803,8 @@ function Form({
     // =========================================================
 
     return (
-
+<div className="max-w-4xl mx-auto p-12">
+    <div className='bg-white shadow-md rounded-lg p-12 border border-gray-200'>
         <Wizard>
 
             {FORM_STEPS.map(step => (
@@ -782,82 +814,27 @@ function Form({
                     step={step}
 
                     formData={formData}
-                    updateFormData={
-                        updateFormData
-                    }
-
-                    updateQuantity={
-                        updateQuantity
-                    }
-
-                    addQuantity={
-                        addQuantity
-                    }
-
-                    removeQuantity={
-                        removeQuantity
-                    }
-
-                    updateComponent={
-                        updateComponent
-                    }
-
-                    addComponent={
-                        addComponent
-                    }
-
-                    removeComponent={
-                        removeComponent
-                    }
-
-                    updateComponentQtyVal={
-                        updateComponentQtyVal
-                    }
-
-                    removeComponentQty={
-                        removeComponentQty
-                    }
-
-                    saveComponent={
-                        saveComponent
-                    }
-
-                    handleComponentFinishingOps={
-                        handleComponentFinishingOps
-                    }
-
-                    updateComponentFinishingOpDetail={
-                        updateComponentFinishingOpDetail
-                    }
-
-                    handleComponentSameQty={
-                        handleComponentSameQty
-                    }
-
-                    handleComponentRequiresFinishing={
-                        handleComponentRequiresFinishing
-                    }
-
-                    updateKitItem={
-                        updateKitItem
-                    }
-
-                    addKitItem={
-                        addKitItem
-                    }
-
-                    removeKitItem={
-                        removeKitItem
-                    }
-
-                    buildKitsFromComponents={
-                        buildKitsFromComponents
-                    }
-
-                    onSubmit={
-                        handleSubmit
-                    }
-
+                    updateFormData={updateFormData}
+                    updateQuantity={updateQuantity}
+                    addQuantity={addQuantity}
+                    removeQuantity={removeQuantity}
+                    updateComponent={updateComponent}
+                    addComponent={addComponent}
+                    removeComponent={removeComponent}
+                    updateComponentQtyVal={updateComponentQtyVal}
+                    removeComponentQty={removeComponentQty}
+                    saveComponent={saveComponent}
+                    handleComponentFinishingOps={handleComponentFinishingOps}
+                    updateComponentFinishingOpDetail={updateComponentFinishingOpDetail}
+                    handleComponentSameQty={handleComponentSameQty}
+                    handleComponentRequiresFinishing={handleComponentRequiresFinishing}
+                    updateKitItem={updateKitItem}
+                    addKitItem={addKitItem}
+                    removeKitItem={removeKitItem}
+                    buildKitsFromComponents={buildKitsFromComponents}
+                    addPackDistribution={addPackDistribution}
+                    updatePackDistribution={updatePackDistribution}
+                    onSubmit={handleSubmit}
                     submitting={submitting}
                     submitResult={submitResult}
                 />
@@ -865,7 +842,8 @@ function Form({
             ))}
 
         </Wizard>
-
+        </div>
+</div>
     )
 }
 

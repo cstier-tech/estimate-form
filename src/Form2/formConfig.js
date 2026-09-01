@@ -44,8 +44,9 @@ export const FORM_STEPS = [
             {
                 label: "RFE Name",
                 name: "rfe_name",
+                formText: 'Use a descriptive name, e.g. "TERSERA Zoladex Coding and Reimbursement Guide ZOL-P 1138 v5"',
                 type: "text",
-                required: true,
+                required: false,
                 error: "RFE name is required."
             },
 
@@ -59,7 +60,7 @@ export const FORM_STEPS = [
                 label: "Customer",
                 name: "customer_name",
                 type: "text",
-                required: true,
+                required: false,
                 error: "Customer is required."
             },
 
@@ -79,7 +80,7 @@ export const FORM_STEPS = [
                 label: "Sales Rep",
                 name: "sales_rep",
                 type: "text",
-                required: true,
+                required: false,
                 error: "Sales Rep is required."
             },
 
@@ -87,7 +88,7 @@ export const FORM_STEPS = [
                 label: "Job Type",
                 name: "job_type",
                 type: "select",
-                required: true,
+                required: false,
                 error: "Job Type is required.",
 
                 options: [
@@ -136,21 +137,6 @@ export const FORM_STEPS = [
     },
 
     {
-        id: "test",
-        title: "TEST",
-        type: "fields",
-
-        // No `db` block -> this step is shown but not saved.
-        fields: [
-            {
-                label: "Class of Mail",
-                name: "class_of_mail",
-                type: "text"
-            }
-        ]
-    },
-
-    {
         id: "components",
         title: "Components",
         type: "components"
@@ -160,6 +146,12 @@ export const FORM_STEPS = [
         id: "kitting",
         title: "Kitting",
         type: "kitting"
+    },
+
+    {
+        id: "pack_distribution",
+        title: "Packs",
+        type: "pack_distribution"
     },
 
     {
@@ -230,6 +222,136 @@ export const FORM_STEPS = [
             }
         ]
     },
+
+    {
+        id: "shipping",
+        title: "Shipping",
+        type: "fields",
+        db: {
+            table: "Shipments",
+            fk: "version_id"
+        },
+        fields: [
+            {
+                label: "Number of Shipments",
+                name: 'num_of_shipments',
+                type: "number",
+                required: false,
+                error: "Number of shipments is required."
+            },
+            {
+                label: "Ship Date",
+                name: 'ship_date',
+                type: 'date',
+                required: false,
+            },
+            {
+                label: 'Shipping Method',
+                name: 'ship_method',
+                type: 'select',
+                required: false,
+                error: 'Ship method is required.',
+                options: [
+                    {
+                        label: 'Select One',
+                        value: ''
+                    },
+                    {
+                        label: 'Ground',
+                        value: 'Ground'
+                    },
+                    {
+                        label: '2 Day',
+                        value: '2 Day'
+                    },
+                    {
+                        label: 'Overnight',
+                        value: 'Overnight'
+                    },
+                    {
+                        label: 'LCP Truck',
+                        value: 'LCP Truck'
+                    },
+                ]
+            },
+            {
+                label: 'Advanced Shipping Notice (ASN) Required',
+                name: 'asn_required',
+                type: 'checkbox',
+                defaultValue: false,
+                required: false,
+                // error: ,
+            },
+            {
+                label: 'ASN Instructions',
+                name: 'asn_instructions',
+                type: 'textarea',
+                required: false,
+                error: 'ASN instructions are required.',
+                showwhen: {
+                    field: 'asn_required',
+                    value: true
+                }
+            },
+            {
+                label: 'Is Approval Needed Prior to Ship?',
+                name: 'approval_required',
+                defaultValue: false,
+                type: 'checkbox',
+                required: false,
+                // error: ,
+            },
+            {
+                label: 'International Shipment?',
+                name: 'ship_internationally',
+                type: 'checkbox',
+                defaultValue: false,
+                required: false,
+                // error: ,
+            },
+            {
+                label: 'USNPC Code',
+                name: 'usnpc_code',
+                type: 'text',
+                required: false,
+                error: 'USNPC code is required.',
+                showwhen: {
+                    field: 'ship_internationally',
+                    value: true
+                }
+            },
+            {
+                label: 'Customs Value',
+                name: 'customs_value',
+                type: 'text',
+                required: false,
+                error: 'Customs value is required.',
+                showwhen: {
+                    field: 'ship_internationally',
+                    value: true
+                }
+            },
+            {
+                label: 'Customs Description',
+                name: 'customs_description',
+                type: 'textarea',
+                required: false,
+                error: 'Customs description is required.',
+                showwhen: {
+                    field: 'ship_internationally',
+                    value: true
+                }
+            },
+            //{
+            //     label: ,
+            //     name: ,
+            //     type: ,
+            //     required: ,
+            //     error: ,
+            // },
+        ]
+    },
+
 
     {
         id: "review",
@@ -324,6 +446,15 @@ export const FORM_CONFIG = {
         table: "Kit Quantities",
         kitFk: "kit_id",
         valueColumn: "quantity"
+    },
+
+    // Pack distribution. One row per pack type, each with a qtyPerPack and numberOfPacks, for each quote level.
+    packDistribution: {
+        table: "Packs",
+        fk: "version_id",
+        packTypeColumn: "pack_type",
+        qtyPerPackColumn: "qty_per_pack",
+        numberOfPacksColumn: "num_of_packs"
     },
 
     steps: FORM_STEPS
