@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm create *)",
-      "Bash(npx --yes create-vite@latest tmp-scaffold --template react)"
+      "Bash(npx --yes create-vite@latest tmp-scaffold --template react)",
+      "Bash(npx vite *)"
     ]
   }
 }

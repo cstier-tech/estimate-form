@@ -10,6 +10,8 @@ import Button from "../components/Button"
 
 import QuantityControl from "../form_sections/QuantityControl"
 
+import { shouldShow } from "./fieldVisibility"
+
 function FieldsStep({
     step,
 
@@ -21,23 +23,11 @@ function FieldsStep({
     removeQuantity
 }) {
 
-    const { nextStep } = useWizard()
+    const { nextStep, previousStep, isFirstStep } = useWizard()
 
     const [submitted, setSubmitted] = useState(false)
 
     const fields = step.fields || []
-
-    const shouldShow = field => {
-
-        if (!field.showwhen) {
-            return true
-        }
-
-        return (
-            formData[field.showwhen.field] ===
-            field.showwhen.value
-        )
-    }
 
     const handleNext = () => {
 
@@ -45,7 +35,7 @@ function FieldsStep({
 
         const hasErrors = fields.some(field => {
 
-            if (!shouldShow(field)) {
+            if (!shouldShow(field, formData)) {
                 return false
             }
 
@@ -83,7 +73,7 @@ function FieldsStep({
 
             {fields.map(field => {
 
-                if (!shouldShow(field)) {
+                if (!shouldShow(field, formData)) {
                     return null
                 }
 
@@ -185,6 +175,13 @@ function FieldsStep({
             )}
 
             <div className="flex gap-2 mt-6">
+
+                {!isFirstStep && (
+                    <Button
+                        label="Back"
+                        onClick={previousStep}
+                    />
+                )}
 
                 <Button
                     label="Next"

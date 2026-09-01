@@ -39,6 +39,11 @@ function Kitting({
     const isFromComponent = kitItem.source === "component"
     const perKit = Number(kitItem.qtyPerKit) || 0
 
+    // Set by "Build Kit from Components": a message when a component can't
+    // cover one-per-kit, or the leftover pieces after an even split.
+    const buildError = kitItem.error || ""
+    const buildOverage = Number(kitItem.overage) || 0
+
     const suggestion = suggestPerKit(component, totalQtys)
     const suggestedValue = suggestion ? suggestion.value : null
 
@@ -50,27 +55,31 @@ function Kitting({
 
     // An overage only exists when a level produces more pieces than its kits
     // consume — that leftover is what "overage action" is about.
-    const hasOverage = Boolean(component) && perKit > 0 && levels.some(({ completedUnits, i }) => {
+    const hasLevelOverage = Boolean(component) && perKit > 0 && levels.some(({ completedUnits, i }) => {
         const produced = Number(component.quantities?.[i]) || 0
         return produced > perKit * completedUnits
     })
 
+    const showOverage = hasLevelOverage || buildOverage > 0
+
     // Prefill the even split once, while the field is still untouched. Editing
-    // it (or clearing it to a non-empty value) keeps the user's number.
+    // it (or clearing it to a non-empty value) keeps the user's number. Skip
+    // it entirely when the build flagged this item as impossible.
     useEffect(() => {
+        if (buildError) return
         const current = kitItem.qtyPerKit
         if ((current === "" || current == null) && suggestedValue != null) {
             updateKitItem(index, "qtyPerKit", String(suggestedValue))
         }
-    }, [suggestedValue, kitItem.qtyPerKit, index, updateKitItem])
+    }, [buildError, suggestedValue, kitItem.qtyPerKit, index, updateKitItem])
 
     // Keep state matching the UI: an overage action that's no longer shown
     // shouldn't get saved.
     useEffect(() => {
-        if (!hasOverage && kitItem.overageAction) {
+        if (!showOverage && kitItem.overageAction) {
             updateKitItem(index, "overageAction", "")
         }
-    }, [hasOverage, kitItem.overageAction, index, updateKitItem])
+    }, [showOverage, kitItem.overageAction, index, updateKitItem])
 
     return (
         <FormSection
@@ -84,6 +93,12 @@ function Kitting({
                     value={kitItem.name}
                     onChange={(e) => updateKitItem(index, "name", e.target.value)}
                 />
+            )}
+
+            {buildError && (
+                <p className="font-medium text-red-700">
+                    {buildError}
+                </p>
             )}
 
             <div className="flex flex-col gap-1">
@@ -133,12 +148,19 @@ function Kitting({
                 </div>
             )}
 
-            {hasOverage && (
-                <TextInput
-                    label="What should be done with the overage?"
-                    value={kitItem.overageAction}
-                    onChange={(e) => updateKitItem(index, "overageAction", e.target.value)}
-                />
+            {showOverage && (
+                <div className="flex flex-col gap-1">
+                    {buildOverage > 0 && (
+                        <small className="text-xs text-amber-700">
+                            {nf.format(buildOverage)} pieces left over after an even split.
+                        </small>
+                    )}
+                    <TextInput
+                        label="What should be done with the overage?"
+                        value={kitItem.overageAction}
+                        onChange={(e) => updateKitItem(index, "overageAction", e.target.value)}
+                    />
+                </div>
             )}
 
             <Button label="Delete" onClick={() => removeKitItem(index)} />

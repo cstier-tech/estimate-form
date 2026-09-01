@@ -4,70 +4,27 @@ import {
 } from "react-use-wizard"
 
 import StepRenderer from "./StepRenderer"
-import { FORM_STEPS } from "./formConfig"
-
-import { supabase } from "../lib/supabaseClient"
+import { FORM_STEPS, FORM_CONFIG } from "./formConfig"
+import { buildInitialFormData, makeBlankComponent } from "./formState"
+import { submitForm } from "./submitForm"
 
 function Form({
-    selectedRFEId
+    selectedRFEId,
+    // Prefilled state when editing a past RFE version; submitting it creates
+    // the next version for the same selectedRFEId.
+    initialData = null
 }) {
 
     // =========================================================
-    // FORM DATA
+    // FORM DATA  (seeded from formConfig.js, or a version being edited)
     // =========================================================
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(
+        () => initialData || buildInitialFormData(FORM_CONFIG)
+    )
 
-        // RFE Overview
-        rfe_name: "",
-        description: "",
-        customer_name: "",
-        customer_number: "",
-        due_date: "",
-        sales_rep: "",
-        job_type: "",
-        previous_job_number: "",
-        additional_comments: "",
-
-        // Quantities
-        quantities: [""],
-
-        // Versions
-        versions: [],
-
-        // Services
-        service_types: [],
-        other_service_types: "",
-
-        // Components
-        components: [
-            {
-                id: crypto.randomUUID(),
-                Component: "",
-                Size: "",
-                Stock: "",
-                Coating: "",
-                FlatSize: "",
-                quantities: [""],
-                saved: false,
-                finishingOps: []
-            }
-        ],
-
-        // Kitting
-        kits: [],
-
-        // Mailing
-        class_of_mail: "",
-        indicia: "",
-        payment_method: "",
-        permit_type: "",
-        nonprofit_auth: "",
-        mailing_from: "",
-        permit_owner: "",
-        exact_company_name: "",
-        exact_company_address: ""
-    })
+    const [submitting, setSubmitting] = useState(false)
+    const [submitResult, setSubmitResult] = useState(null)
 
 
     // =========================================================
@@ -91,16 +48,31 @@ function Form({
     // QUANTITIES
     // =========================================================
 
+    // Components with "same as total qty" checked mirror the RFE-level
+    // quantities, so any change to the totals has to flow through to them.
+    const syncSameQty = (quantities, components) =>
+        components.map(component =>
+            component.SameQty
+                ? { ...component, quantities: [...quantities] }
+                : component
+        )
+
+
     const addQuantity = () => {
 
-        setFormData(prev => ({
-            ...prev,
+        setFormData(prev => {
 
-            quantities: [
+            const quantities = [
                 ...prev.quantities,
                 ""
             ]
-        }))
+
+            return {
+                ...prev,
+                quantities,
+                components: syncSameQty(quantities, prev.components)
+            }
+        })
 
     }
 
@@ -110,17 +82,19 @@ function Form({
         value
     ) => {
 
-        setFormData(prev => ({
-            ...prev,
+        setFormData(prev => {
 
-            quantities:
-                prev.quantities.map(
-                    (qty, i) =>
-                        i === index
-                            ? value
-                            : qty
-                )
-        }))
+            const quantities = prev.quantities.map(
+                (qty, i) =>
+                    i === index ? value : qty
+            )
+
+            return {
+                ...prev,
+                quantities,
+                components: syncSameQty(quantities, prev.components)
+            }
+        })
 
     }
 
@@ -129,15 +103,18 @@ function Form({
         index
     ) => {
 
-        setFormData(prev => ({
-            ...prev,
+        setFormData(prev => {
 
-            quantities:
-                prev.quantities.filter(
-                    (_, i) =>
-                        i !== index
-                )
-        }))
+            const quantities = prev.quantities.filter(
+                (_, i) => i !== index
+            )
+
+            return {
+                ...prev,
+                quantities,
+                components: syncSameQty(quantities, prev.components)
+            }
+        })
 
     }
 
@@ -153,18 +130,7 @@ function Form({
 
             components: [
                 ...prev.components,
-
-                {
-                    id: crypto.randomUUID(),
-                    Component: "",
-                    Size: "",
-                    Stock: "",
-                    Coating: "",
-                    FlatSize: "",
-                    quantities: [""],
-                    saved: false,
-                    finishingOps: []
-                }
+                makeBlankComponent()
             ]
         }))
 
@@ -231,16 +197,22 @@ function Form({
                             return component
                         }
 
+                        // Grow the array so quote levels past index 0
+                        // are editable (the grid renders one row per
+                        // total quantity, not per stored value).
+                        const quantities = [
+                            ...component.quantities
+                        ]
+
+                        while (quantities.length <= qtyIndex) {
+                            quantities.push("")
+                        }
+
+                        quantities[qtyIndex] = value
+
                         return {
                             ...component,
-
-                            quantities:
-                                component.quantities.map(
-                                    (qty, j) =>
-                                        j === qtyIndex
-                                            ? value
-                                            : qty
-                                )
+                            quantities
                         }
 
                     }
@@ -280,6 +252,56 @@ function Form({
 
                     }
                 )
+        }))
+
+    }
+
+
+    // "Quantity is the same as Total Finished Qty(s)" — copy the current
+    // totals in now and keep them synced (see syncSameQty).
+    const handleComponentSameQty = (
+        componentIndex,
+        checked
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            components: prev.components.map((component, i) =>
+                i === componentIndex
+                    ? {
+                        ...component,
+                        SameQty: checked,
+                        quantities: checked
+                            ? [...prev.quantities]
+                            : component.quantities
+                    }
+                    : component
+            )
+        }))
+
+    }
+
+
+    // "Does this component require finishing?" — toggles the finishing
+    // section; clearing it drops any operations that were picked.
+    const handleComponentRequiresFinishing = (
+        componentIndex,
+        checked
+    ) => {
+
+        setFormData(prev => ({
+            ...prev,
+
+            components: prev.components.map((component, i) =>
+                i === componentIndex
+                    ? {
+                        ...component,
+                        requiresFinishing: checked,
+                        finishingOps: checked ? component.finishingOps : []
+                    }
+                    : component
+            )
         }))
 
     }
@@ -346,22 +368,12 @@ function Form({
                         ...prev.kits,
 
                         {
-                            componentId:
-                                component.id,
-
-                            source:
-                                "component",
-
-                            Kit:
-                                component.Component,
-
-                            quantities:
-                                [
-                                    ...component.quantities
-                                ],
-
-                            OverageAction:
-                                ""
+                            id: crypto.randomUUID(),
+                            source: "component",
+                            componentId: component.id,
+                            name: component.Component,
+                            qtyPerKit: "",
+                            overageAction: ""
                         }
                     ]
 
@@ -374,7 +386,7 @@ function Form({
                                 component.id
                                     ? {
                                         ...kit,
-                                        Kit:
+                                        name:
                                             component.Component
                                     }
                                     : kit
@@ -512,29 +524,35 @@ function Form({
     // =========================================================
     // KITTING
     // =========================================================
+    //
+    // A kit item is either "manual" (typed name) or "component" (linked to a
+    // saved component by componentId). `qtyPerKit` is a single number; the
+    // per-quote-level reconciliation shown in the UI is derived from the linked
+    // component and the RFE totals, not stored here.
 
-    const addKit = () => {
+    const makeManualKitItem = () => ({
+        id: crypto.randomUUID(),
+        source: "manual",
+        name: "",
+        qtyPerKit: "",
+        overageAction: ""
+    })
+
+
+    const addKitItem = () => {
 
         setFormData(prev => ({
             ...prev,
-
             kits: [
                 ...prev.kits,
-
-                {
-                    id: crypto.randomUUID(),
-                    source: "manual",
-                    Kit: "",
-                    quantities: [""],
-                    OverageAction: ""
-                }
+                makeManualKitItem()
             ]
         }))
 
     }
 
 
-    const updateKit = (
+    const updateKitItem = (
         index,
         field,
         value
@@ -543,117 +561,101 @@ function Form({
         setFormData(prev => ({
             ...prev,
 
-            kits:
-                prev.kits.map(
-                    (kit, i) =>
-                        i === index
-                            ? {
-                                ...kit,
-                                [field]: value
-                            }
-                            : kit
-                )
+            kits: prev.kits.map(
+                (kit, i) =>
+                    i === index
+                        ? { ...kit, [field]: value }
+                        : kit
+            )
         }))
 
     }
 
 
-    const updateKitQtyCount = (
-        index
-    ) => {
+    const removeKitItem = index => {
 
         setFormData(prev => ({
             ...prev,
-
-            kits:
-                prev.kits.map(
-                    (kit, i) =>
-                        i === index
-                            ? {
-                                ...kit,
-
-                                quantities: [
-                                    ...kit.quantities,
-                                    ""
-                                ]
-                            }
-                            : kit
-                )
+            kits: prev.kits.filter((_, i) => i !== index)
         }))
 
     }
 
 
-    const updateKitQtyVal = (
-        kitIndex,
-        qtyIndex,
-        value
-    ) => {
+    // "Build Kit from Components" — regenerate one component-sourced kit item
+    // per component. The kit count per quote level is the RFE `quantities`;
+    // qty per kit = floor(component pieces / kits) taken at the first quote
+    // level where both are known. A remainder surfaces the overage question;
+    // too few pieces flags an error. Manual kit items are left untouched.
+    const buildKitsFromComponents = () => {
 
-        setFormData(prev => ({
-            ...prev,
+        setFormData(prev => {
 
-            kits:
-                prev.kits.map(
-                    (kit, i) =>
-                        i === kitIndex
-                            ? {
-                                ...kit,
+            const kitCounts = prev.quantities.map(
+                value => Number(value) || 0
+            )
 
-                                quantities:
-                                    kit.quantities.map(
-                                        (qty, j) =>
-                                            j === qtyIndex
-                                                ? value
-                                                : qty
-                                    )
-                            }
-                            : kit
+            const manualKits = prev.kits.filter(
+                kit => kit.source !== "component"
+            )
+
+            const componentKits = prev.components
+                .filter(
+                    component =>
+                        String(component.Component || "").trim() !== ""
                 )
-        }))
+                .map(component => {
 
-    }
+                    const base = {
+                        id: crypto.randomUUID(),
+                        source: "component",
+                        componentId: component.id,
+                        name: component.Component,
+                        overageAction: ""
+                    }
 
+                    const insufficient = {
+                        ...base,
+                        qtyPerKit: "",
+                        overage: 0,
+                        error:
+                            "Could not create kit item due to insufficient component pieces"
+                    }
 
-    const removeKit = index => {
+                    // first quote level where both the kit count and the
+                    // component piece count are known
+                    const level = kitCounts.findIndex(
+                        (kits, i) =>
+                            kits > 0 &&
+                            (Number(component.quantities?.[i]) || 0) > 0
+                    )
 
-        setFormData(prev => ({
-            ...prev,
+                    if (level === -1) {
+                        return insufficient
+                    }
 
-            kits:
-                prev.kits.filter(
-                    (_, i) =>
-                        i !== index
-                )
-        }))
+                    const kits = kitCounts[level]
+                    const pieces = Number(component.quantities[level]) || 0
 
-    }
+                    if (pieces < kits) {
+                        return insufficient
+                    }
 
+                    const perKit = Math.floor(pieces / kits)
 
-    const removeKitQty = (
-        kitIndex,
-        qtyIndex
-    ) => {
+                    return {
+                        ...base,
+                        qtyPerKit: String(perKit),
+                        overage: pieces - perKit * kits,
+                        error: ""
+                    }
+                })
 
-        setFormData(prev => ({
-            ...prev,
-
-            kits:
-                prev.kits.map(
-                    (kit, i) =>
-                        i === kitIndex
-                            ? {
-                                ...kit,
-
-                                quantities:
-                                    kit.quantities.filter(
-                                        (_, j) =>
-                                            j !== qtyIndex
-                                    )
-                            }
-                            : kit
-                )
-        }))
+            return {
+                ...prev,
+                kits: [...manualKits, ...componentKits]
+            }
+        })
 
     }
 
@@ -711,22 +713,12 @@ function Form({
                         )
                         .map(
                             component => ({
-                                componentId:
-                                    component.id,
-
-                                source:
-                                    "component",
-
-                                Kit:
-                                    component.Component,
-
-                                quantities:
-                                    [
-                                        ...component.quantities
-                                    ],
-
-                                OverageAction:
-                                    ""
+                                id: crypto.randomUUID(),
+                                source: "component",
+                                componentId: component.id,
+                                name: component.Component,
+                                qtyPerKit: "",
+                                overageAction: ""
                             })
                         )
 
@@ -757,484 +749,21 @@ function Form({
 
     const handleSubmit = async () => {
 
-        // Build the final service type data
-        const finalServiceTypes = [
-            ...formData.service_types.map(
-                type => ({
-                    source: "check",
-                    value: type
-                })
-            ),
-
-            ...formData.other_service_types
-                .split(",")
-                .map(item => ({
-                    source: "custom",
-                    value: item.trim()
-                }))
-                .filter(
-                    item =>
-                        item.value
-                )
-        ]
-
-
-        // =====================================================
-        // 1. CREATE OR GET RFE
-        // =====================================================
-
-        let RFEId =
-            selectedRFEId
-
-        if (!RFEId) {
-
-            const {
-                data: rfe,
-                error
-            } = await supabase
-                .from("RFEs")
-                .insert({})
-                .select()
-                .single()
-
-            if (error) {
-
-                console.error(
-                    "error creating RFE:",
-                    error
-                )
-
-                return
-            }
-
-            RFEId =
-                rfe.id
-        }
-
-
-        // =====================================================
-        // 2. GET EXISTING VERSIONS
-        // =====================================================
-
-        const {
-            data: versions,
-            error: versionsError
-        } = await supabase
-            .from("RFE Versions")
-            .select("version_number")
-            .eq("rfe_id", RFEId)
-
-        if (versionsError) {
-
-            console.error(
-                "error loading versions:",
-                versionsError
-            )
-
+        if (submitting) {
             return
         }
 
-
-        // =====================================================
-        // 3. NEXT VERSION
-        // =====================================================
-
-        const nextVersionNumber =
-            versions.length > 0
-                ? Math.max(
-                    ...versions.map(
-                        v =>
-                            v.version_number
-                    )
-                ) + 1
-                : 1
-
-
-        // =====================================================
-        // 4. CREATE VERSION
-        // =====================================================
-
-        const {
-            data: version,
-            error: versionError
-        } = await supabase
-            .from("RFE Versions")
-            .insert({
-
-                rfe_id:
-                    RFEId,
-
-                version_number:
-                    nextVersionNumber,
-
-                rfe_name:
-                    formData.rfe_name,
-
-                customer_name:
-                    formData.customer_name,
-
-                description:
-                    formData.description,
-
-                customer_number:
-                    formData.customer_number,
-
-                due_date:
-                    formData.due_date,
-
-                sales_rep:
-                    formData.sales_rep,
-
-                job_type:
-                    formData.job_type,
-
-                additional_comments:
-                    formData.additional_comments,
-
-                previous_job_number:
-                    formData.previous_job_number
-
-            })
-            .select()
-            .single()
-
-        if (versionError) {
-
-            console.error(
-                "error saving RFE version:",
-                versionError
-            )
-
-            return
-        }
-
-
-        // =====================================================
-        // 5. SAVE QUANTITIES
-        // =====================================================
-
-        const quantityRows =
-            formData.quantities
-
-                .filter(
-                    qty =>
-                        String(qty).trim() !== ""
-                )
-
-                .map(
-                    (qty, index) => ({
-                        quantity:
-                            Number(qty),
-
-                        version_id:
-                            version.id,
-
-                        sort_order:
-                            index
-                    })
-                )
-
-        let savedQuantities = []
-
-        if (
-            quantityRows.length > 0
-        ) {
-
-            const {
-                data: quantities,
-                error
-            } = await supabase
-                .from("RFE Quantities")
-                .insert(quantityRows)
-                .select()
-
-            if (error) {
-
-                console.error(
-                    "error saving quantities:",
-                    error
-                )
-
-                return
-            }
-
-            savedQuantities =
-                quantities
-        }
-
-
-        // =====================================================
-        // 6. SAVE COMPONENTS
-        // =====================================================
-
-        const componentRows =
-            formData.components
-
-                .filter(
-                    component =>
-                        String(
-                            component.Component ||
-                            ""
-                        ).trim() !== ""
-                )
-
-                .map(
-                    component => ({
-                        component_name:
-                            component.Component,
-
-                        size:
-                            component.Size,
-
-                        stock:
-                            component.Stock,
-
-                        coating:
-                            component.Coating,
-
-                        saved:
-                            component.saved,
-
-                        flat_size:
-                            component.FlatSize,
-
-                        version_id:
-                            version.id,
-
-                        component_key:
-                            component.id
-                    })
-                )
-
-        let savedComponents = []
-
-        if (
-            componentRows.length > 0
-        ) {
-
-            const {
-                data: components,
-                error
-            } = await supabase
-                .from("Components")
-                .insert(componentRows)
-                .select()
-
-            if (error) {
-
-                console.error(
-                    "error saving components:",
-                    error
-                )
-
-                return
-            }
-
-            savedComponents =
-                components
-        }
-
-
-        // =====================================================
-        // 7. COMPONENT QUANTITIES
-        // =====================================================
-
-        const componentQuantityRows = []
-
-        formData.components.forEach(
-            (
-                formComponent,
-                componentIndex
-            ) => {
-
-                const savedComponent =
-                    savedComponents[
-                        componentIndex
-                    ]
-
-                if (!savedComponent) {
-                    return
-                }
-
-                formComponent.quantities
-
-                    .filter(
-                        qty =>
-                            String(qty).trim() !== ""
-                    )
-
-                    .forEach(
-                        (
-                            qty,
-                            quantityIndex
-                        ) => {
-
-                            const rfeQuantity =
-                                savedQuantities[
-                                    quantityIndex
-                                ]
-
-                            if (!rfeQuantity) {
-                                return
-                            }
-
-                            componentQuantityRows.push({
-
-                                component_id:
-                                    savedComponent.id,
-
-                                quantity:
-                                    Number(qty),
-
-                                rfe_quantity_id:
-                                    rfeQuantity.id
-
-                            })
-
-                        }
-                    )
-
-            }
-        )
-
-
-        if (
-            componentQuantityRows.length > 0
-        ) {
-
-            const {
-                error
-            } = await supabase
-                .from("Component Quantities")
-                .insert(
-                    componentQuantityRows
-                )
-
-            if (error) {
-
-                console.error(
-                    "error saving component quantities:",
-                    error
-                )
-
-                return
-            }
-
-        }
-
-
-        // =====================================================
-        // 8. FINISHING
-        // =====================================================
-
-        const finishingRows = []
-
-        formData.components.forEach(
-            (
-                formComponent,
-                componentIndex
-            ) => {
-
-                const savedComponent =
-                    savedComponents[
-                        componentIndex
-                    ]
-
-                if (!savedComponent) {
-                    return
-                }
-
-                if (
-                    !formComponent.finishingOps
-                ) {
-                    return
-                }
-
-                formComponent.finishingOps.forEach(
-                    operation => {
-
-                        finishingRows.push({
-
-                            operation:
-                                operation.value,
-
-                            details:
-                                operation.details ||
-                                {},
-
-                            component_id:
-                                savedComponent.id
-
-                        })
-
-                    }
-                )
-
-            }
-        )
-
-
-        if (
-            finishingRows.length > 0
-        ) {
-
-            const {
-                error
-            } = await supabase
-                .from("Component Finishing")
-                .insert(finishingRows)
-
-            if (error) {
-
-                console.error(
-                    "error saving component finishing:",
-                    error
-                )
-
-                return
-            }
-
-        }
-
-
-        // =====================================================
-        // 9. SUCCESS
-        // =====================================================
-
-        console.log(
-            "created RFE:",
-            RFEId
-        )
-
-        console.log(
-            "created version:",
-            version
-        )
-
-        console.log(
-            "saved quantities:",
-            savedQuantities
-        )
-
-        console.log(
-            "saved components:",
-            savedComponents
-        )
-
-        console.log(
-            "saved component quantities:",
-            componentQuantityRows
-        )
-
-        console.log(
-            "saved finishing:",
-            finishingRows
-        )
-
-        alert(
-            "RFE saved successfully!"
-        )
-
+        setSubmitting(true)
+        setSubmitResult(null)
+
+        const result = await submitForm({
+            formData,
+            selectedRFEId,
+            config: FORM_CONFIG
+        })
+
+        setSubmitResult(result)
+        setSubmitting(false)
     }
 
 
@@ -1301,33 +830,36 @@ function Form({
                         updateComponentFinishingOpDetail
                     }
 
-                    updateKit={
-                        updateKit
+                    handleComponentSameQty={
+                        handleComponentSameQty
                     }
 
-                    addKit={
-                        addKit
+                    handleComponentRequiresFinishing={
+                        handleComponentRequiresFinishing
                     }
 
-                    removeKit={
-                        removeKit
+                    updateKitItem={
+                        updateKitItem
                     }
 
-                    updateKitQtyCount={
-                        updateKitQtyCount
+                    addKitItem={
+                        addKitItem
                     }
 
-                    updateKitQtyVal={
-                        updateKitQtyVal
+                    removeKitItem={
+                        removeKitItem
                     }
 
-                    removeKitQty={
-                        removeKitQty
+                    buildKitsFromComponents={
+                        buildKitsFromComponents
                     }
 
                     onSubmit={
                         handleSubmit
                     }
+
+                    submitting={submitting}
+                    submitResult={submitResult}
                 />
 
             ))}

@@ -1,51 +1,28 @@
 import { useState } from "react"
 
-import ProjectsPage from "./pages/ProjectsPage"
 import Header from "./components/layout_parts/Header"
 import Form from "./Form2/Form"
-
-function readUrlParam(name) {
-    return (
-        new URLSearchParams(
-            window.location.search
-        ).get(name) || ""
-    )
-}
+import RfeListPage from "./Form2/RfeListPage"
 
 function App() {
 
-    const user =
-        readUrlParam("user")
+    const [view, setView] = useState("form")
 
-    const clientName =
-        readUrlParam("clientName")
-
-    const customerNumber =
-        readUrlParam("customerNumber")
-
-    const [view, setView] =
-        useState("list")
-
-    const [editingProject, setEditingProject] =
-        useState(null)
+    // { rfeId, formData } when editing a past RFE, else null
+    const [editing, setEditing] = useState(null)
 
     function showNewForm() {
-        setEditingProject(null)
+        setEditing(null)
         setView("form")
     }
 
     function showList() {
-        setEditingProject(null)
+        setEditing(null)
         setView("list")
     }
 
-    function showOutline() {
-        setEditingProject(null)
-        setView("outline")
-    }
-
-    function editProject(project) {
-        setEditingProject(project)
+    function editRfe({ rfeId, formData }) {
+        setEditing({ rfeId, formData })
         setView("form")
     }
 
@@ -55,14 +32,18 @@ function App() {
             <Header
                 onNewRfe={showNewForm}
                 onViewRfes={showList}
-                onOutline={showOutline}
+                onOutline={showList}
             />
 
-            <Form
-                selectedRFEId={
-                    editingProject?.id || null
-                }
-            />
+            {view === "list" ? (
+                <RfeListPage onEdit={editRfe} />
+            ) : (
+                <Form
+                    key={editing?.rfeId || "new"}
+                    selectedRFEId={editing?.rfeId || null}
+                    initialData={editing?.formData || null}
+                />
+            )}
 
         </div>
     )

@@ -8,13 +8,10 @@ import Button from "../components/Button"
 function KittingStep({
     formData,
 
-    updateKit,
-    addKit,
-    removeKit,
-
-    updateKitQtyCount,
-    updateKitQtyVal,
-    removeKitQty
+    updateKitItem,
+    addKitItem,
+    removeKitItem,
+    buildKitsFromComponents
 }) {
 
     const {
@@ -22,52 +19,58 @@ function KittingStep({
         previousStep
     } = useWizard()
 
+    const kitCounts = formData.quantities
+        .map(value => String(value ?? "").trim())
+        .filter(Boolean)
+
     return (
         <div>
 
             <Steppers />
 
-            {formData.kits.map(
-                (kit, index) => (
+            <p className="text-sm text-gray-600 mb-4">
+                {kitCounts.length > 0
+                    ? `Kits to quote: ${kitCounts.join(", ")} (from the overview quantities). Enter qty per kit for each item.`
+                    : "Add quantities on the overview step to set how many kits are quoted."}
+            </p>
 
+            <div className="mb-4">
+                <Button
+                    label="Build Kit from Components"
+                    variant="info"
+                    onClick={buildKitsFromComponents}
+                />
+            </div>
+
+            {formData.kits.map((kitItem, index) => {
+
+                // A "component" kit item is linked to a saved component;
+                // Kitting uses it to prefill Qty per kit and to reconcile
+                // per-kit demand against what the component will produce.
+                const component = kitItem.componentId
+                    ? formData.components.find(
+                        c => c.id === kitItem.componentId
+                    ) || null
+                    : null
+
+                return (
                     <Kitting
-                        key={
-                            kit.componentId ||
-                            `manual-${index}`
-                        }
-
-                        kit={kit}
+                        key={kitItem.id}
+                        kitItem={kitItem}
                         index={index}
-
-                        updateKit={
-                            updateKit
-                        }
-
-                        updateKitQtyCount={
-                            updateKitQtyCount
-                        }
-
-                        updateKitQtyVal={
-                            updateKitQtyVal
-                        }
-
-                        removeKit={
-                            removeKit
-                        }
-
-                        removeKitQty={
-                            removeKitQty
-                        }
+                        component={component}
+                        totalQtys={formData.quantities}
+                        updateKitItem={updateKitItem}
+                        removeKitItem={removeKitItem}
                     />
-
                 )
-            )}
+            })}
 
             <div className="mt-4">
 
                 <Button
-                    label="Add Kit"
-                    onClick={addKit}
+                    label="Add Kit Item"
+                    onClick={addKitItem}
                 />
 
             </div>

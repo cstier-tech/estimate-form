@@ -18,7 +18,10 @@ function ComponentsStep({
     saveComponent,
 
     handleComponentFinishingOps,
-    updateComponentFinishingOpDetail
+    updateComponentFinishingOpDetail,
+
+    handleComponentSameQty,
+    handleComponentRequiresFinishing
 }) {
 
     const {
@@ -68,6 +71,14 @@ function ComponentsStep({
 
                         updateFinishingOpDetail={
                             updateComponentFinishingOpDetail
+                        }
+
+                        handleSameQty={
+                            handleComponentSameQty
+                        }
+
+                        handleRequiresFinishing={
+                            handleComponentRequiresFinishing
                         }
                     />
 

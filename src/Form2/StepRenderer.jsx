@@ -25,15 +25,17 @@ function StepRenderer({
     handleComponentFinishingOps,
     updateComponentFinishingOpDetail,
 
-    updateKit,
-    addKit,
-    removeKit,
+    handleComponentSameQty,
+    handleComponentRequiresFinishing,
 
-    updateKitQtyCount,
-    updateKitQtyVal,
-    removeKitQty,
+    updateKitItem,
+    addKitItem,
+    removeKitItem,
+    buildKitsFromComponents,
 
-    onSubmit
+    onSubmit,
+    submitting,
+    submitResult
 }) {
 
     switch (step.type) {
@@ -99,6 +101,14 @@ function StepRenderer({
                     updateComponentFinishingOpDetail={
                         updateComponentFinishingOpDetail
                     }
+
+                    handleComponentSameQty={
+                        handleComponentSameQty
+                    }
+
+                    handleComponentRequiresFinishing={
+                        handleComponentRequiresFinishing
+                    }
                 />
             )
 
@@ -108,28 +118,20 @@ function StepRenderer({
                 <KittingStep
                     formData={formData}
 
-                    updateKit={
-                        updateKit
+                    updateKitItem={
+                        updateKitItem
                     }
 
-                    addKit={
-                        addKit
+                    addKitItem={
+                        addKitItem
                     }
 
-                    removeKit={
-                        removeKit
+                    removeKitItem={
+                        removeKitItem
                     }
 
-                    updateKitQtyCount={
-                        updateKitQtyCount
-                    }
-
-                    updateKitQtyVal={
-                        updateKitQtyVal
-                    }
-
-                    removeKitQty={
-                        removeKitQty
+                    buildKitsFromComponents={
+                        buildKitsFromComponents
                     }
                 />
             )
@@ -140,6 +142,8 @@ function StepRenderer({
                 <ReviewStep
                     formData={formData}
                     onSubmit={onSubmit}
+                    submitting={submitting}
+                    submitResult={submitResult}
                 />
             )
 

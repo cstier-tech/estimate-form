@@ -5,12 +5,17 @@ import Button from "../components/Button"
 
 function ReviewStep({
     formData,
-    onSubmit
+    onSubmit,
+    submitting = false,
+    submitResult = null
 }) {
 
     const {
         previousStep
     } = useWizard()
+
+    const succeeded = submitResult?.ok === true
+    const failed = submitResult && submitResult.ok === false
 
     const quantities =
         formData.quantities
@@ -87,14 +92,36 @@ function ReviewStep({
                 <Button
                     label="Back"
                     onClick={previousStep}
+                    disabled={submitting}
                 />
 
                 <Button
-                    label="Submit"
+                    label={
+                        submitting
+                            ? "Submitting…"
+                            : succeeded
+                                ? "Submitted"
+                                : "Submit"
+                    }
+                    variant="success"
                     onClick={onSubmit}
+                    disabled={submitting || succeeded}
                 />
 
             </div>
+
+            {failed && (
+                <p className="text-red-700 mt-3">
+                    {submitResult.error?.message ||
+                        "Something went wrong saving the RFE."}
+                </p>
+            )}
+
+            {succeeded && (
+                <p className="text-emerald-700 mt-3">
+                    RFE saved successfully.
+                </p>
+            )}
 
         </div>
     )
