@@ -8,6 +8,7 @@ import { FORM_STEPS, FORM_CONFIG } from "./formConfig"
 import { buildInitialFormData, makeBlankComponent } from "./formState"
 import { createPackDistributionRow } from "../pages/newestForm/factories"
 import { submitForm } from "./submitForm"
+import { shouldShow } from "./fieldVisibility"
 
 function Form({
     selectedRFEId,
@@ -26,6 +27,11 @@ function Form({
 
     const [submitting, setSubmitting] = useState(false)
     const [submitResult, setSubmitResult] = useState(null)
+
+
+    const visibleSteps = FORM_STEPS.filter(
+    step => shouldShow(step, formData)
+)
 
 
     // =========================================================
@@ -749,26 +755,21 @@ function Form({
 
     const addPackDistribution = () => {
         setFormData(prev => {
-            const currentLevels = prev.packDistribution || []
-            const nextLevelIndex = currentLevels.length
-
             return {
                 ...prev,
                 packDistribution: [
-                    ...currentLevels,
-                    [createPackDistributionRow(nextLevelIndex)]
+                    ...(prev.packDistribution || []),
+                    createPackDistributionRow()
                 ]
             }
         })
     }
 
-    const updatePackDistribution = (rows, levelIndex) => {
+    const updatePackDistribution = rows => {
         setFormData(prev => {
-            const updatedPackDistribution = [...(prev.packDistribution || [])]
-            updatedPackDistribution[levelIndex] = rows
             return {
                 ...prev,
-                packDistribution: updatedPackDistribution
+                packDistribution: rows
             }
         })
     }
@@ -807,7 +808,7 @@ function Form({
     <div className='bg-white shadow-md rounded-lg p-12 border border-gray-200'>
         <Wizard>
 
-            {FORM_STEPS.map(step => (
+            {visibleSteps.map(step => (
 
                 <StepRenderer
                     key={step.id}

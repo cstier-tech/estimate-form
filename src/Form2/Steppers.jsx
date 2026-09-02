@@ -7,39 +7,38 @@ import {
 } from "./formConfig"
 import Button from "../components/Button"
 
-function Steppers() {
+import { shouldShow } from "./fieldVisibility"
 
-    const {activeStep, goToStep} = useWizard()
+function Steppers({ formData }) {
+    const { activeStep, goToStep } = useWizard()
+
+    const visibleSteps = FORM_STEPS.filter(
+        step => shouldShow(step, formData)
+    )
 
     return (
         <div className="flex gap-2 mb-6">
-
-            {FORM_STEPS.map(
-                (step, index) => (
-
-                    <div
-                        key={step.id}
-                        className={
+            {visibleSteps.map((step, index) => (
+                <div
+                    key={step.id}
+                    className={
+                        index === activeStep
+                            ? "font-bold"
+                            : "text-gray-500"
+                    }
+                >
+                    <Button
+                        label={`${index + 1}. ${step.title}`}
+                        onClick={() => goToStep(index)}
+                        size="sm"
+                        variant={
                             index === activeStep
-                                ? "font-bold"
-                                : "text-gray-500"
+                                ? "info"
+                                : "primary"
                         }
-                    >
-                        {/* {index + 1}.
-                        {" "}
-                        {step.title} */}
-                        <Button
-                            // key={step.id}
-                            label={(index + 1).toString() + ". " + step.title}
-                            onClick={() => goToStep(index)}
-                            size='sm'
-                            variant={index === activeStep ? 'info' : 'primary'}
-                        />
-                    </div>
-
-                )
-            )}
-
+                    />
+                </div>
+            ))}
         </div>
     )
 }

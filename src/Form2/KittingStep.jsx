@@ -26,7 +26,7 @@ function KittingStep({
     return (
         <div>
 
-            <Steppers />
+            <Steppers formData={formData} />
 
             <p className="text-sm text-gray-600 mb-4">
                 {kitCounts.length > 0

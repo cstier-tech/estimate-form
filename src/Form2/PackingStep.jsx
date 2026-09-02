@@ -19,21 +19,13 @@ function PackingStep({
     return (
         <div>
 
-            <Steppers />
+            <Steppers formData={formData} />
 
-            {(formData.packDistribution || []).map(
-                (rows, levelIndex) => (
-
-                    <PackingDistribution
-                        key={levelIndex}
-                        rows={rows}
-                        levelIndex={levelIndex}
-                        onChange={(nextRows) => updatePackDistribution(nextRows, levelIndex)}
-                        completedUnits={Number(formData.quantities?.[levelIndex] || 0)}
-                    />
-
-                )
-            )}
+            <PackingDistribution
+                rows={formData.packDistribution || []}
+                quantities={formData.quantities || []}
+                onChange={updatePackDistribution}
+            />
 
             <div className="mt-4">
 

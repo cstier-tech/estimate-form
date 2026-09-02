@@ -10,6 +10,7 @@ import Button from "../components/Button"
 import DateInput from '../components/DateInput'
 import NumberInput from '../components/NumberInput'
 import CheckboxInput from '../components/CheckboxInput'
+import RadioGroup from '../components/RadioGroup'
 
 import QuantityControl from "../form_sections/QuantityControl"
 
@@ -80,7 +81,7 @@ function FieldsStep({
     return (
         <div>
 
-            <Steppers />
+            <Steppers formData={formData} />
 
             {fields.map(field => {
 
@@ -169,6 +170,21 @@ function FieldsStep({
                         {field.type === "select" && (
                             <SelectInput
                                 label={field.label}
+                                options={field.options || []}
+                                value={value}
+                                onChange={event =>
+                                    handleChange(
+                                        field,
+                                        event
+                                    )
+                                }
+                            />
+                        )}
+
+                        {field.type === "radio" && (
+                            <RadioGroup
+                                label={field.label}
+                                name={field.name}
                                 options={field.options || []}
                                 value={value}
                                 onChange={event =>

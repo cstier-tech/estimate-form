@@ -51,7 +51,7 @@ export function buildInitialFormData(config) {
 
         components: [makeBlankComponent()],
 
-        packDistribution: [[createPackDistributionRow(0)]],
+        packDistribution: [createPackDistributionRow()],
 
         // Kit items. The kit count per quote level is the RFE `quantities`
         // above; each item keeps a single scalar qty-per-kit.

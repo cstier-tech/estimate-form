@@ -17,7 +17,7 @@ function NumberInput({ label, value, onChange, name, min = '0', max, required, d
   return (
     <div className="flex flex-col gap-1 w-full">
       {label !== '' &&
-        <label htmlFor={name} className={LABEL_CLASS}>{label}</label>
+        <label htmlFor={name} className={`LABEL_CLASS` + ` test`}>{label}</label>
       }
       <input
         type="number"

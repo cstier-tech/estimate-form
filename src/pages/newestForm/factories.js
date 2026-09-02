@@ -19,8 +19,8 @@ export function createEmptyComponent() {
 
 // One empty pack-distribution row, tied to a quote level (index into qtysToQuote):
 // its own pack type plus a qty-per-pack / number-of-packs split.
-export function createPackDistributionRow(levelIndex = 0) {
-    return { levelIndex, packType: "", qtyPerPack: "", numberOfPacks: "" }
+export function createPackDistributionRow() {
+    return { packType: "", qtyPerPack: "", numberOfPacks: [] }
 }
 
 // A kit item stands for one thing that goes into every kit. `qtyPerKit` is a

@@ -32,7 +32,7 @@ function ComponentsStep({
     return (
         <div>
 
-            <Steppers />
+            <Steppers formData={formData} />
 
             {formData.components.map(
                 (component, index) => (

@@ -23,6 +23,7 @@ export function buildFormDataFromVersion({
     kitBuilds = [],
     kitItems = [],
     kitQuantities = [],
+    packs = [],
     // { [tableName]: row } for child "fields" steps (e.g. Mailing)
     childRowsByTable = {}
 }) {
@@ -36,6 +37,7 @@ export function buildFormDataFromVersion({
     const kbCfg = config.kitBuilds
     const kiCfg = config.kitItems
     const kqCfg = config.kitQuantities
+    const pkCfg = config.packDistribution
 
     // ---- plain fields ----
     for (const step of config.steps) {
@@ -70,6 +72,48 @@ export function buildFormDataFromVersion({
     data.quantities = orderedQtys.length
         ? orderedQtys.map(row => str(row[qtyCfg.valueColumn]))
         : [""]
+
+    if (orderedQtys.length > 0) {
+        const versionPacks = packs
+            .filter(row => row[pkCfg.fk] === version.id)
+            .sort((a, b) => {
+                const left = Number(a.id)
+                const right = Number(b.id)
+
+                if (Number.isFinite(left) && Number.isFinite(right)) {
+                    return left - right
+                }
+
+                return String(a.id).localeCompare(String(b.id))
+            })
+
+        const packRows = []
+
+        for (let index = 0; index < versionPacks.length; index += orderedQtys.length) {
+            const definitionRows = versionPacks.slice(
+                index,
+                index + orderedQtys.length
+            )
+
+            if (definitionRows.length === 0) {
+                continue
+            }
+
+            const firstRow = definitionRows[0]
+
+            packRows.push({
+                packType: firstRow[pkCfg.packTypeColumn] || "",
+                qtyPerPack: str(firstRow[pkCfg.qtyPerPackColumn]),
+                numberOfPacks: definitionRows.map(
+                    row => str(row[pkCfg.numberOfPacksColumn])
+                )
+            })
+        }
+
+        if (packRows.length > 0) {
+            data.packDistribution = packRows
+        }
+    }
 
     // ---- components ----
     const versionComponents = components.filter(

@@ -26,7 +26,8 @@ const {
     componentFinishing: COMPONENT_FINISHING,
     kitBuilds: KIT_BUILDS,
     kitItems: KIT_ITEMS,
-    kitQuantities: KIT_QUANTITIES
+    kitQuantities: KIT_QUANTITIES,
+    packDistribution: PACKS
 } = FORM_CONFIG
 
 // Child "fields" steps that live in their own table (e.g. Mailing).
@@ -228,6 +229,7 @@ function RfeListPage({ onEdit }) {
         kitBuilds: [],
         kitItems: [],
         kitQuantities: [],
+        packs: [],
         childRows: {}
     })
 
@@ -252,7 +254,8 @@ function RfeListPage({ onEdit }) {
                 supabase.from(COMPONENT_FINISHING.table).select("*"),
                 supabase.from(KIT_BUILDS.table).select("*"),
                 supabase.from(KIT_ITEMS.table).select("*"),
-                supabase.from(KIT_QUANTITIES.table).select("*")
+                supabase.from(KIT_QUANTITIES.table).select("*"),
+                supabase.from(PACKS.table).select("*")
             ]
 
             const childQueries = CHILD_STEPS.map(step =>
@@ -282,7 +285,8 @@ function RfeListPage({ onEdit }) {
                 componentFinishing,
                 kitBuilds,
                 kitItems,
-                kitQuantities
+                kitQuantities,
+                packs
             ] = rows
 
             const childRows = {}
@@ -299,6 +303,7 @@ function RfeListPage({ onEdit }) {
                 kitBuilds,
                 kitItems,
                 kitQuantities,
+                packs,
                 childRows
             })
             setLoading(false)
@@ -348,10 +353,18 @@ function RfeListPage({ onEdit }) {
         [versionsByRfe]
     )
 
-    const columns = useMemo(
-        () => columnsOf(latestVersions),
-        [latestVersions]
-    )
+    const DISPLAY_COLUMNS = [
+    {key: "rfe_name", label: "Name"},
+    {key: "version_type", label: "Status"},
+    {key: "customer_name", label: "Customer"},
+    {key: "customer_number", label: "Customer #"},
+    {key: "due_date", label: "Due Date"},
+    {key: "sales_rep", label: "Sales Rep"},
+    {key: "job_type", label: "Job Type"},
+]
+
+const columns = DISPLAY_COLUMNS
+
 
     if (loading) {
         return <p className="p-4">Loading RFEs…</p>
@@ -398,10 +411,80 @@ function RfeListPage({ onEdit }) {
             kitBuilds: data.kitBuilds,
             kitItems: data.kitItems,
             kitQuantities: data.kitQuantities,
+            packs: data.packs,
             childRowsByTable
         })
 
         onEdit({ rfeId: version[VERSION.fk], formData })
+    }
+
+    function handleIsJob(version) {
+
+        const childRowsByTable = {}
+
+        for (const step of CHILD_STEPS) {
+            const fk = step.db.fk || "version_id"
+            childRowsByTable[step.db.table] = (
+                data.childRows[step.db.table] || []
+            ).find(row => row[fk] === version.id)
+        }
+
+        const formData = buildFormDataFromVersion({
+            config: FORM_CONFIG,
+            version,
+            quantities: data.quantities,
+            components: data.components,
+            componentQuantities: data.componentQuantities,
+            componentFinishing: data.componentFinishing,
+            kitBuilds: data.kitBuilds,
+            kitItems: data.kitItems,
+            kitQuantities: data.kitQuantities,
+            packs: data.packs,
+            childRowsByTable
+        })
+
+        const jobFormData = {
+            ...formData,
+            version_type: "job"
+        }
+
+        onEdit({ rfeId: version[VERSION.fk], formData: jobFormData })
+    }
+
+    function handleDuplicate(version) {
+
+        const childRowsByTable = {}
+
+        for (const step of CHILD_STEPS) {
+            const fk = step.db.fk || "version_id"
+            childRowsByTable[step.db.table] = (
+                data.childRows[step.db.table] || []
+            ).find(row => row[fk] === version.id)
+        }
+
+        const formData = buildFormDataFromVersion({
+            config: FORM_CONFIG,
+            version,
+            quantities: data.quantities,
+            components: data.components,
+            componentQuantities: data.componentQuantities,
+            componentFinishing: data.componentFinishing,
+            kitBuilds: data.kitBuilds,
+            kitItems: data.kitItems,
+            kitQuantities: data.kitQuantities,
+            packs: data.packs,
+            childRowsByTable
+        })
+
+        const duplicatedFormData = {
+            ...formData,
+            rfe_name: `${formData.rfe_name} Copy`
+        }
+
+        onEdit({
+            rfeId: null,
+            formData: duplicatedFormData
+        })
     }
 
     if (latestVersions.length === 0) {
@@ -428,12 +511,14 @@ function RfeListPage({ onEdit }) {
                         <tr>
                             <th className="px-3 py-2" />
                             <th className="px-3 py-2" />
+                            <th className="px-3 py-2" />
+                            <th className="px-3 py-2" />
                             {columns.map(column => (
                                 <th
-                                    key={column}
+                                    key={column.key}
                                     className="px-3 py-2 text-left font-semibold whitespace-nowrap"
                                 >
-                                    {column}
+                                    {column.label}
                                 </th>
                             ))}
                         </tr>
@@ -456,7 +541,7 @@ function RfeListPage({ onEdit }) {
                             return (
                                 <Fragment key={rfeId}>
 
-                                    <tr className="border-t border-gray-200">
+                                    <tr className={`border-t border-gray-200 ${latest.version_type === "job" ? 'bg-blue-500/50' : ''}`}>
                                         <td className="px-3 py-2 align-top">
                                             <button
                                                 type="button"
@@ -478,12 +563,34 @@ function RfeListPage({ onEdit }) {
                                                 Edit
                                             </button>
                                         </td>
+                                        <td className="px-3 py-2 align-top">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDuplicate(latest)}
+                                                className="px-3 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 whitespace-nowrap"
+                                            >
+                                                Duplicate
+                                            </button>
+                                            
+                                        </td>
+                                        <td>
+                                            {latest.version_type === "rfe" &&
+                                            <button
+                                                type="button"
+                                                onClick={() => handleIsJob(latest)}
+                                                className="px-3 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50 whitespace-nowrap"
+                                            >
+                                                Convert to Job
+                                            </button>
+                                            }
+                                            
+                                        </td>
                                         {columns.map(column => (
                                             <td
-                                                key={column}
+                                                key={column.key}
                                                 className="px-3 py-2 align-top whitespace-nowrap"
                                             >
-                                                {renderCell(latest[column])}
+                                                {renderCell(latest[column.key])}
                                             </td>
                                         ))}
                                     </tr>
@@ -491,7 +598,7 @@ function RfeListPage({ onEdit }) {
                                     {isOpen && (
                                         <tr>
                                             <td
-                                                colSpan={columns.length + 2}
+                                                colSpan={columns.length + 3}
                                                 className="px-4 py-4 bg-gray-50 border-t border-gray-200"
                                             >
                                                 <div className="flex flex-wrap items-end gap-3 mb-2">
@@ -542,6 +649,17 @@ function RfeListPage({ onEdit }) {
                                                         className="px-3 py-2 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50"
                                                     >
                                                         Edit this version
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDuplicate(
+                                                                selectedVersion
+                                                            )
+                                                        }
+                                                        className="px-3 py-2 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50"
+                                                    >
+                                                        Create duplicate from this version
                                                     </button>
                                                 </div>
 

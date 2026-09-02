@@ -42,6 +42,11 @@ export const FORM_STEPS = [
 
         fields: [
             {
+                name: "version_type",
+                type: "hidden",
+                defaultValue: "rfe"
+            },
+            {
                 label: "RFE Name",
                 name: "rfe_name",
                 formText: 'Use a descriptive name, e.g. "TERSERA Zoladex Coding and Reimbursement Guide ZOL-P 1138 v5"',
@@ -159,6 +164,11 @@ export const FORM_STEPS = [
         title: "Mailing",
         type: "fields",
 
+        showwhen: {
+            field: 'version_type',
+            value: 'job'
+        },
+
         // One child row in "Mailing", linked with version_id.
         db: {
             table: "Mailing",
@@ -244,36 +254,59 @@ export const FORM_STEPS = [
                 name: 'ship_date',
                 type: 'date',
                 required: false,
+                showwhen: {
+                    field: "version_type",
+                    value: "job"
+                },
             },
+            // {
+            //     label: 'Shipping Method',
+            //     name: 'ship_method',
+            //     type: 'select',
+            //     required: false,
+            //     error: 'Ship method is required.',
+            //     options: [
+            //         {
+            //             label: 'Select One',
+            //             value: ''
+            //         },
+            //         {
+            //             label: 'Ground',
+            //             value: 'Ground'
+            //         },
+            //         {
+            //             label: '2 Day',
+            //             value: '2 Day'
+            //         },
+            //         {
+            //             label: 'Overnight',
+            //             value: 'Overnight'
+            //         },
+            //         {
+            //             label: 'LCP Truck',
+            //             value: 'LCP Truck'
+            //         },
+            //     ]
+            // },
+
             {
-                label: 'Shipping Method',
-                name: 'ship_method',
-                type: 'select',
-                required: false,
-                error: 'Ship method is required.',
+                label: 'Drop Ship or Bulk Ship?',
+                name: 'drop_or_bulk',
+                type: 'radio',
+                required: true,
+                error: 'Please select either Drop Ship or Bulk Ship.',
                 options: [
                     {
-                        label: 'Select One',
-                        value: ''
+                        label: 'Drop Ship',
+                        value: 'Drop Ship'
                     },
                     {
-                        label: 'Ground',
-                        value: 'Ground'
-                    },
-                    {
-                        label: '2 Day',
-                        value: '2 Day'
-                    },
-                    {
-                        label: 'Overnight',
-                        value: 'Overnight'
-                    },
-                    {
-                        label: 'LCP Truck',
-                        value: 'LCP Truck'
+                        label: 'Bulk Ship',
+                        value: 'Bulk Ship'
                     },
                 ]
             },
+            
             {
                 label: 'Advanced Shipping Notice (ASN) Required',
                 name: 'asn_required',

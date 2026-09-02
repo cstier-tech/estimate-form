@@ -369,7 +369,48 @@ export async function submitForm({ formData, selectedRFEId, config }) {
 
 
         // -----------------------------------------------------------------
-        // 9. GENERIC CHILD FIELDS STEPS  (Mailing, and anything you add)
+        // 9. PACKS  (shared pack definitions, calculated per quantity level)
+        // -----------------------------------------------------------------
+
+        const packCfg = config.packDistribution
+        const packDefinitions = (formData.packDistribution || [])
+            .filter(pack => !isBlank(pack.packType) || !isBlank(pack.qtyPerPack))
+        const combinedQtyPerPack = packDefinitions.reduce(
+            (sum, pack) => sum + (Number(pack.qtyPerPack) || 0),
+            0
+        )
+        const packRows = packDefinitions
+            .flatMap(pack => formData.quantities
+                .map((quantity, levelIndex) => ({ quantity, levelIndex }))
+                .filter(entry => !isBlank(entry.quantity) && Number(pack.qtyPerPack) > 0)
+                .map(({ quantity, levelIndex }) => {
+                    const qtyPerPack = Number(pack.qtyPerPack)
+                    const calculatedNumberOfPacks = combinedQtyPerPack > 0
+                        ? Math.ceil(Number(quantity) / combinedQtyPerPack)
+                        : 0
+                    const numberOfPacks = pack.numberOfPacks?.[levelIndex] ?? calculatedNumberOfPacks
+
+                    return {
+                        [packCfg.fk]: versionId,
+                        [packCfg.packTypeColumn]: pack.packType,
+                        [packCfg.qtyPerPackColumn]: qtyPerPack,
+                        [packCfg.numberOfPacksColumn]: numberOfPacks
+                    }
+                })
+            )
+
+        if (packRows.length > 0) {
+            await run(
+                "save packs",
+                supabase
+                    .from(packCfg.table)
+                    .insert(packRows)
+            )
+        }
+
+
+        // -----------------------------------------------------------------
+        // 10. GENERIC CHILD FIELDS STEPS  (Mailing, and anything you add)
         // -----------------------------------------------------------------
 
         const childSteps = config.steps.filter(

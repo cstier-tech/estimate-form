@@ -34,7 +34,7 @@ function ReviewStep({
     return (
         <div>
 
-            <Steppers />
+            <Steppers formData={formData} />
 
             <h3>
                 Review

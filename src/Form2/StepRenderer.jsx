@@ -3,6 +3,7 @@ import ComponentsStep from "./ComponentsStep"
 import KittingStep from "./KittingStep"
 import ReviewStep from "./ReviewStep"
 import PackingStep from "./PackingStep"
+import { shouldShow } from "./fieldVisibility"
 
 function StepRenderer({
     step,
@@ -41,6 +42,9 @@ function StepRenderer({
     submitting,
     submitResult
 }) {
+    if(!shouldShow(step, formData)) {
+       return null
+    }
 
     switch (step.type) {
 
