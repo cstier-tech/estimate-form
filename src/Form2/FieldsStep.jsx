@@ -15,6 +15,7 @@ import RadioGroup from '../components/RadioGroup'
 import QuantityControl from "../form_sections/QuantityControl"
 
 import { shouldShow } from "./fieldVisibility"
+import RadioCards from "../components/RadioCards"
 
 function FieldsStep({
     step,
@@ -61,14 +62,14 @@ function FieldsStep({
     }
 
     const handleChange = (field, event) => {
-        if (field.type === 'checkbox'){
+        if (field.type === 'checkbox') {
             let checked = event.target.checked
             updateFormData(
                 field.name,
                 checked
             )
             return
-        } 
+        }
 
         let value = event.target.value
 
@@ -79,13 +80,17 @@ function FieldsStep({
     }
 
     return (
-        <div>
+        <div className="grid grid-cols-6 gap-4">
 
-            <Steppers formData={formData} />
+            <div className="col-span-6">
+                <Steppers formData={formData} />
+            </div>
+
 
             {fields.map(field => {
 
-                if (!shouldShow(field, formData)) {
+
+                if (!shouldShow(field, formData) || field.type === "hidden") {
                     return null
                 }
 
@@ -95,7 +100,7 @@ function FieldsStep({
                 return (
                     <div
                         key={field.name}
-                        className="mb-4"
+                        className={`mb-4 ${field.width === 'half' ? 'col-span-3' : field.width === 'third' ? 'col-span-2' : 'col-span-6'}`}
                     >
 
                         {field.type === "text" && (
@@ -125,13 +130,13 @@ function FieldsStep({
                                 }
                             />
                         )}
-                        
+
                         {field.type === "checkbox" && (
                             <CheckboxInput
                                 label={field.label}
                                 name={field.name}
                                 checked={!!value}
-                                onChange={event => 
+                                onChange={event =>
                                     handleChange(
                                         field,
                                         event
@@ -182,7 +187,7 @@ function FieldsStep({
                         )}
 
                         {field.type === "radio" && (
-                            <RadioGroup
+                            <RadioCards
                                 label={field.label}
                                 name={field.name}
                                 options={field.options || []}
@@ -230,7 +235,7 @@ function FieldsStep({
                 </div>
             )}
 
-            <div className="flex gap-2 mt-6">
+            <div className="flex gap-2 mt-6 col-span-6">
 
                 {!isFirstStep && (
                     <Button

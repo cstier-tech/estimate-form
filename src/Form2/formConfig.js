@@ -24,7 +24,9 @@
 // Field object:
 //   { label, name, type, required?, error?, options?, showwhen?, defaultValue? }
 //   type: "text" | "textarea" | "date" | "select"
-//   showwhen: { field, value }  -> only shown when formData[field] === value
+//   showwhen: { field, value }        -> shown when formData[field] === value
+//   showwhen: { field, value: [...] } -> shown when formData[field] is any of them
+//   showwhen: [ {field,value}, ... ]  -> shown when ANY condition matches (OR)
 // =============================================================================
 
 export const FORM_STEPS = [
@@ -46,61 +48,61 @@ export const FORM_STEPS = [
                 type: "hidden",
                 defaultValue: "rfe"
             },
-            {
-                label: "RFE Name",
-                name: "rfe_name",
-                formText: 'Use a descriptive name, e.g. "TERSERA Zoladex Coding and Reimbursement Guide ZOL-P 1138 v5"',
-                type: "text",
-                required: false,
-                error: "RFE name is required."
-            },
 
-            {
-                label: "Description",
-                name: "description",
-                type: "textarea"
-            },
+
+
 
             {
                 label: "Customer",
                 name: "customer_name",
                 type: "text",
                 required: false,
-                error: "Customer is required."
+                error: "Customer is required.",
+                width: 'third',
             },
 
             {
                 label: "Customer Number",
                 name: "customer_number",
-                type: "text"
+                type: "text",
+                width: 'third',
             },
-
-            {
-                label: "Requested Due Date",
-                name: "due_date",
-                type: "date"
-            },
-
             {
                 label: "Sales Rep",
                 name: "sales_rep",
                 type: "text",
                 required: false,
-                error: "Sales Rep is required."
+                error: "Sales Rep is required.",
+                width: 'third'
             },
-
+            {
+                label: "RFE Name",
+                name: "rfe_name",
+                // formText: 'Use a descriptive name, e.g. "TERSERA Zoladex Coding and Reimbursement Guide ZOL-P 1138 v5"',
+                type: "text",
+                required: false,
+                error: "RFE name is required.",
+                width: 'half'
+            },
+            {
+                label: "Requested Due Date",
+                name: "due_date",
+                type: "date",
+                width: 'half'
+            },
             {
                 label: "Job Type",
                 name: "job_type",
-                type: "select",
+                type: "radio",
                 required: false,
                 error: "Job Type is required.",
+                width: '',
 
                 options: [
-                    {
-                        label: "Select One",
-                        value: ""
-                    },
+                    // {
+                    //     label: "Select One",
+                    //     value: ""
+                    // },
                     {
                         label: "New Job",
                         value: "New Job"
@@ -124,18 +126,33 @@ export const FORM_STEPS = [
                 label: "Previous Job Number",
                 name: "previous_job_number",
                 type: "text",
-
+                width: 'half',
                 showwhen: {
                     field: "job_type",
-                    value: "Reprint – No Changes"
+                    value: ["Reprint – No Changes", "Reprint – With Changes", "Quote Update"]
                 }
             },
-
             {
-                label: "Additional Comments",
-                name: "additional_comments",
+                label: "What changes are being made?",
+                name: "changes_from_prev",
+                type: "text",
+                width: 'half',
+                showwhen: {
+                    field: "job_type",
+                    value: ["Reprint – With Changes", "Quote Update"]
+                }
+
+            },
+            {
+                label: "Description",
+                name: "description",
                 type: "textarea"
-            }
+            },
+            // {
+            //     label: "Additional Comments",
+            //     name: "additional_comments",
+            //     type: "textarea"
+            // }
         ],
 
         quantities: true
@@ -306,7 +323,7 @@ export const FORM_STEPS = [
                     },
                 ]
             },
-            
+
             {
                 label: 'Advanced Shipping Notice (ASN) Required',
                 name: 'asn_required',
